@@ -1,5 +1,7 @@
 import type { WebsiteRelease } from '../../types';
 import { releaseChannel, releaseChannelLabel } from '../../config/site/site';
+import Button from '../buttons/Button';
+import { ChevronDown } from 'lucide-react';
 
 function formatDate(value: string): string {
   const date = new Date(value);
@@ -58,17 +60,24 @@ function ReleaseCard({ release, showDownload = false, featured = false }: Releas
         </ul>
       ) : null}
 
-      <p className="mt-3 text-sm leading-relaxed text-cova-muted">{release.notes}</p>
+      {/* Full notes largely repeat the bullets above, so they sit behind a disclosure */}
+      <details className="group mt-1">
+        <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-cova-accent hover:underline">
+          Show details
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+        </summary>
+        <p className="pb-1 text-sm leading-relaxed text-cova-muted">{release.notes}</p>
+      </details>
 
-      <div className="mt-5 flex flex-wrap gap-4 text-sm font-semibold">
-        <a href={release.githubReleaseUrl} className="text-cova-accent hover:underline">
-          View on GitHub
-        </a>
+      <div className="mt-4 flex flex-wrap gap-3">
         {showDownload && release.apkUrl ? (
-          <a href={release.apkUrl} className="text-cova-accent hover:underline">
+          <Button href={release.apkUrl} size="md">
             Download{release.apkSize ? ` (${release.apkSize})` : ''}
-          </a>
+          </Button>
         ) : null}
+        <Button href={release.githubReleaseUrl} variant="secondary" size="md">
+          View on GitHub
+        </Button>
       </div>
     </article>
   );
