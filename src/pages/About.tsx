@@ -3,6 +3,7 @@ import Container from '../components/common/Container';
 import SectionHeading from '../components/common/SectionHeading';
 import Button from '../components/buttons/Button';
 import { features } from '../data/features';
+import { moduleMeta } from '../data/moduleMeta';
 import siteConfig from '../config/site/site';
 
 const facts = [
@@ -37,7 +38,7 @@ function About() {
           <SectionHeading
             eyebrow="About"
             title="About Cova Vault"
-            subtitle="Only verifiable project information is shown here. Nothing invented, nothing inflated."
+            subtitle="Only verifiable project information is shown here."
           />
         </Container>
       </section>
@@ -59,22 +60,23 @@ function About() {
         <Container className="max-w-4xl">
           <SectionHeading align="left" eyebrow="Modules" title="What it organizes" />
           <ul className="mt-8 flex flex-wrap gap-2">
-            {features.map((feature) => (
-              <li
-                key={feature.key}
-                className="rounded-badge border border-cova-border bg-cova-surface px-3.5 py-2 text-sm text-cova-muted"
-              >
-                <span aria-hidden="true" className="mr-1.5">
-                  {feature.icon}
-                </span>
-                {feature.name}
-              </li>
-            ))}
+            {features.map((feature) => {
+              const Icon = moduleMeta[feature.key]?.icon;
+              return (
+                <li
+                  key={feature.key}
+                  className="inline-flex items-center gap-1.5 rounded-badge border border-cova-border bg-cova-surface px-3.5 py-2 text-sm text-cova-muted"
+                >
+                  {Icon ? <Icon className="h-3.5 w-3.5 text-cova-accent" aria-hidden="true" /> : null}
+                  {feature.name}
+                </li>
+              );
+            })}
           </ul>
         </Container>
       </section>
 
-      <section className="py-16 lg:py-20">
+      <section className="border-t border-cova-border bg-cova-surface py-16 lg:py-20">
         <Container className="max-w-4xl">
           <SectionHeading align="left" eyebrow="Repositories" title="Explore the project" />
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
