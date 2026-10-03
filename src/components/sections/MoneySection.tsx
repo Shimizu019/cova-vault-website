@@ -4,7 +4,7 @@ import WalletPanel from '../common/WalletPanel';
 
 function MoneySection() {
   return (
-    <section className="border-b border-cova-border bg-cova-surface py-16 lg:py-20">
+    <section className="border-b border-cova-border py-16 lg:py-20">
       <Container className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-cova-accent">PeraLog · My Wallet</p>
@@ -15,10 +15,19 @@ function MoneySection() {
             Dashboard, starting from the balance you set up.
           </p>
           <ul className="mt-6 space-y-2 text-sm text-cova-muted">
-            <li>· Income and expense records with categories</li>
-            <li>· Monthly summary, category breakdown, and budgets</li>
-            <li>· Cash payments with an optional change calculation</li>
-            <li>· Current-month wallet balance on the Dashboard</li>
+            {[
+              'Income and expense records with categories',
+              'Monthly summary, category breakdown, and budgets',
+              'Cash payments with an optional change calculation',
+              'Current-month wallet balance on the Dashboard',
+            ].map((item) => (
+              <li key={item} className="flex gap-2.5">
+                <span aria-hidden="true" className="text-cova-faint">
+                  ·
+                </span>
+                <span>{item}</span>
+              </li>
+            ))}
           </ul>
           <div className="mt-7">
             <Button to="/features" variant="secondary">

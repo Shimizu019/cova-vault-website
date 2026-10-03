@@ -8,7 +8,7 @@
  */
 function WalletPanel() {
   return (
-    <div className="rounded-card border border-cova-border bg-cova-elevated p-5">
+    <div className="gradient-border rounded-card bg-cova-elevated p-5 shadow-glow">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-cova-text">My Wallet (October)</h3>
         <span className="text-xs text-cova-faint">Concept layout</span>
@@ -34,8 +34,8 @@ function WalletPanel() {
         <div className="rounded-btn border border-cova-border bg-cova-surface px-4 py-3">
           <p className="text-xs text-cova-faint">Budget · Food</p>
           <p className="mt-1 text-sm font-medium text-cova-text">₱800 of ₱1,000 spent</p>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-cova-elevated">
-            <div className="h-full w-4/5 rounded-full bg-cova-accent" />
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-cova-surface">
+            <div className="progress-fill h-full w-4/5 rounded-full bg-gradient-to-r from-cova-primary to-cova-violet" />
           </div>
         </div>
 
