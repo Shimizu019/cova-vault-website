@@ -13,7 +13,7 @@ function SectionHeading({ title, subtitle, align = 'center', eyebrow }: SectionH
         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-cova-accent">{eyebrow}</p>
       ) : null}
       <h2 className="text-section-title font-bold text-cova-text">{title}</h2>
-      {subtitle ? <p className="mt-3 text-base leading-relaxed text-cova-muted">{subtitle}</p> : null}
+      {subtitle ? <p className="mt-3 max-w-[65ch] text-base leading-relaxed text-cova-muted">{subtitle}</p> : null}
     </div>
   );
 }

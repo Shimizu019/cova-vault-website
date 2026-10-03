@@ -13,9 +13,17 @@
   --cova-primary-hover: #256fe0;
   --cova-accent: #3fa9ff;
   --cova-text: #f5f9ff;
-  --cova-muted: #94a9bf;
-  --cova-faint: #64798f;
+  --cova-muted: #a5b8cb;
+  --cova-faint: #8296ab;
   --cova-border: #20364d;
+  --cova-violet: #8b5cf6;
+  --cova-violet-rgb: 139 92 246;
+
+  /* Hero glow, gradient text, and gradient border accents (dark) */
+  --glow-a: rgba(47, 128, 255, 0.3);
+  --glow-b: rgba(139, 92, 246, 0.22);
+  --gradient-text: linear-gradient(100deg, #3fa9ff 0%, #8b5cf6 90%);
+  --gradient-border: linear-gradient(135deg, rgba(47, 128, 255, 0.55), rgba(139, 92, 246, 0.35) 45%, rgba(47, 128, 255, 0.1));
 
   /* RGB triplets so Tailwind can apply alpha modifiers */
   --cova-bg-rgb: 7 17 31;
@@ -25,8 +33,8 @@
   --cova-primary-hover-rgb: 37 111 224;
   --cova-accent-rgb: 63 169 255;
   --cova-text-rgb: 245 249 255;
-  --cova-muted-rgb: 148 169 191;
-  --cova-faint-rgb: 100 121 143;
+  --cova-muted-rgb: 165 184 203;
+  --cova-faint-rgb: 130 150 171;
   --cova-border-rgb: 32 54 77;
   --cova-success-rgb: 53 208 127;
   --cova-warning-rgb: 245 185 66;
@@ -38,6 +46,8 @@
   --shadow-nav: 0 1px 0 rgba(2, 8, 20, 0.55);
   --shadow-dialog: 0 24px 64px -28px rgba(2, 8, 20, 0.6);
   --shadow-shot: 0 32px 80px -36px rgba(2, 8, 20, 0.65);
+  --shadow-glow: 0 14px 44px -16px rgba(47, 128, 255, 0.45);
+  --shadow-float: 0 30px 70px -30px rgba(2, 8, 20, 0.85);
 }
 
 html.light {
@@ -52,8 +62,16 @@ html.light {
   --cova-accent: #175fd0;
   --cova-text: #0f1c2e;
   --cova-muted: #516273;
-  --cova-faint: #7d8b9b;
+  --cova-faint: #55677c;
   --cova-border: #d7e0ea;
+  --cova-violet: #7c3aed;
+  --cova-violet-rgb: 124 58 237;
+
+  /* Hero glow, gradient text, and gradient border accents (light) */
+  --glow-a: rgba(47, 128, 255, 0.16);
+  --glow-b: rgba(139, 92, 246, 0.12);
+  --gradient-text: linear-gradient(100deg, #1f6fe6 0%, #7c3aed 90%);
+  --gradient-border: linear-gradient(135deg, rgba(31, 111, 230, 0.55), rgba(124, 58, 237, 0.35) 45%, rgba(31, 111, 230, 0.12));
 
   --cova-bg-rgb: 245 248 252;
   --cova-surface-rgb: 255 255 255;
@@ -63,7 +81,7 @@ html.light {
   --cova-accent-rgb: 23 95 208;
   --cova-text-rgb: 15 28 46;
   --cova-muted-rgb: 81 98 115;
-  --cova-faint-rgb: 125 139 155;
+  --cova-faint-rgb: 85 103 124;
   --cova-border-rgb: 215 224 234;
 
   --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06);
@@ -71,15 +89,23 @@ html.light {
   --shadow-nav: 0 1px 0 rgba(15, 23, 42, 0.08);
   --shadow-dialog: 0 24px 64px -28px rgba(15, 23, 42, 0.22);
   --shadow-shot: 0 32px 80px -40px rgba(15, 23, 42, 0.28);
+  --shadow-glow: 0 14px 40px -18px rgba(31, 111, 230, 0.4);
+  --shadow-float: 0 24px 60px -28px rgba(15, 23, 42, 0.3);
 }
 
 html {
   scroll-behavior: smooth;
 }
 
+/* Keep anchor targets clear of the sticky navbar */
+[id] {
+  scroll-margin-top: 5.5rem;
+}
+
 body {
   background-color: var(--cova-bg);
   color: var(--cova-text);
+  line-height: 1.6;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -113,6 +139,79 @@ summary:focus-visible,
   .surface-card {
     @apply rounded-card border border-cova-border bg-cova-surface shadow-card;
   }
+
+  /* 1px gradient border painted over the card edge (radius inherited) */
+  .gradient-border {
+    position: relative;
+  }
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--gradient-border);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Accent word in the hero title */
+  .gradient-text {
+    background: var(--gradient-text);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Radial blue/violet depth behind the hero */
+  .hero-glow {
+    position: absolute;
+    inset: -12% -6% auto;
+    height: 88%;
+    background:
+      radial-gradient(42% 60% at 24% 35%, var(--glow-a), transparent 70%),
+      radial-gradient(38% 55% at 72% 22%, var(--glow-b), transparent 70%);
+    pointer-events: none;
+  }
+}
+
+/* Gentle floating motion for the hero mockup */
+@keyframes cova-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.float-anim {
+  animation: cova-float 7s ease-in-out infinite;
+}
+.float-anim-slow {
+  animation: cova-float 9s ease-in-out infinite;
+  animation-delay: 1.4s;
+}
+
+/* Progress bars fill in when they enter the viewport */
+@keyframes cova-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.progress-fill {
+  transform-origin: left;
+  animation: cova-progress 1.2s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -125,5 +224,12 @@ summary:focus-visible,
     animation-duration: 0.01ms !important;
     animation-delay: 0s !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Infinite/keyframed decorations settle to a static, fully visible state */
+  .float-anim,
+  .float-anim-slow,
+  .progress-fill {
+    animation: none !important;
   }
 }

@@ -12,6 +12,7 @@ export default {
           primary: 'rgb(var(--cova-primary-rgb) / <alpha-value>)',
           hover: 'rgb(var(--cova-primary-hover-rgb) / <alpha-value>)',
           accent: 'rgb(var(--cova-accent-rgb) / <alpha-value>)',
+          violet: 'rgb(var(--cova-violet-rgb) / <alpha-value>)',
           text: 'rgb(var(--cova-text-rgb) / <alpha-value>)',
           muted: 'rgb(var(--cova-muted-rgb) / <alpha-value>)',
           faint: 'rgb(var(--cova-faint-rgb) / <alpha-value>)',
@@ -44,13 +45,15 @@ export default {
         nav: 'var(--shadow-nav)',
         dialog: 'var(--shadow-dialog)',
         shot: 'var(--shadow-shot)',
+        glow: 'var(--shadow-glow)',
+        float: 'var(--shadow-float)',
       },
       fontSize: {
-        display: ['clamp(2.25rem, 4.5vw, 3.25rem)', { lineHeight: '1.08', letterSpacing: '-0.02em' }],
-        'section-title': ['clamp(1.75rem, 3vw, 2.25rem)', { lineHeight: '1.15', letterSpacing: '-0.015em' }],
+        display: ['clamp(2.5rem, 5.5vw, 4rem)', { lineHeight: '1.06', letterSpacing: '-0.03em' }],
+        'section-title': ['clamp(1.85rem, 3.2vw, 2.5rem)', { lineHeight: '1.12', letterSpacing: '-0.02em' }],
       },
       maxWidth: {
-        prose: '68ch',
+        prose: '65ch',
         site: '72rem',
       },
       keyframes: {
@@ -69,5 +72,8 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // `light:` variant — the site marks the light theme with an `html.light` class.
+    ({ addVariant }) => addVariant('light', 'html.light &'),
+  ],
 };
