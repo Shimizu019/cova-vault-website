@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+
+  /* Dark theme (default) */
+  --cova-bg: #07111f;
+  --cova-surface: #0d1b2a;
+  --cova-elevated: #12263a;
+  --cova-text: #f5f9ff;
+  --cova-muted: #94a9bf;
+  --cova-border: #20364d;
+}
+
+html.light {
+  color-scheme: light;
+
+  /* Light theme — own hierarchy, not an inversion */
+  --cova-bg: #f5f8fc;
+  --cova-surface: #ffffff;
+  --cova-elevated: #eaf0f7;
+  --cova-text: #0f1c2e;
+  --cova-muted: #516273;
+  --cova-border: #d7e0ea;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--cova-bg);
+  color: var(--cova-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #3fa9ff;
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
