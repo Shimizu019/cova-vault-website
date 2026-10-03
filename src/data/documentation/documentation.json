@@ -1,0 +1,51 @@
+[
+  {
+    "id": "getting-started",
+    "title": "Getting Started",
+    "description": "Install Cova Vault, create your first vault and learn the basics.",
+    "icon": "🚀",
+    "link": "/documentation#getting-started"
+  },
+  {
+    "id": "installation",
+    "title": "Installation",
+    "description": "How to install the APK and enable install from unknown sources safely.",
+    "icon": "📦",
+    "link": "/documentation#installation"
+  },
+  {
+    "id": "credentials",
+    "title": "Credentials",
+    "description": "Store logins, generate strong passwords and use auto-fill.",
+    "icon": "🔐",
+    "link": "/documentation#credentials"
+  },
+  {
+    "id": "notes",
+    "title": "Notes",
+    "description": "Keep encrypted notes, ideas and important information.",
+    "icon": "📝",
+    "link": "/documentation#notes"
+  },
+  {
+    "id": "backup",
+    "title": "Backup & Export",
+    "description": "Export your vault and keep safe offline backups.",
+    "icon": "💾",
+    "link": "/documentation#backup"
+  },
+  {
+    "id": "security",
+    "title": "Security",
+    "description": "Understand encryption, master password and best practices.",
+    "icon": "🛡️",
+    "link": "/documentation#security"
+  },
+  {
+    "id": "faq",
+    "title": "FAQ",
+    "description": "Answers to the most common questions about Cova Vault.",
+    "icon": "❓",
+    "link": "/documentation#faq"
+  }
+]
