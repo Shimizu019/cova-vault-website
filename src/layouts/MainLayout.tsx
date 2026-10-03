@@ -1,8 +1,10 @@
 import { Outlet } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 
 function MainLayout() {
+  useScrollReveal();
   return (
     <div className="flex min-h-screen flex-col bg-cova-bg text-cova-text">
       <a

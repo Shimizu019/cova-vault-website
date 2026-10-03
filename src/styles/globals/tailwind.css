@@ -180,6 +180,19 @@ summary:focus-visible,
       radial-gradient(38% 55% at 72% 22%, var(--glow-b), transparent 70%);
     pointer-events: none;
   }
+
+  /* Scroll-reveal base state (toggled by useScrollReveal) */
+  .reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 0.4s ease,
+      transform 0.4s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+  .reveal-on-scroll.is-visible {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Gentle floating motion for the hero mockup */
@@ -213,6 +226,10 @@ summary:focus-visible,
   transform-origin: left;
   animation: cova-progress 1.2s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
+/* Hold the fill until its section has scrolled into view (when revealed) */
+.reveal-on-scroll:not(.is-visible) .progress-fill {
+  animation-play-state: paused;
+}
 
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -231,5 +248,10 @@ summary:focus-visible,
   .float-anim-slow,
   .progress-fill {
     animation: none !important;
+  }
+  .reveal-on-scroll {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }
