@@ -29,7 +29,7 @@ const projectLinks = [
 
 function Footer() {
   return (
-    <footer className="mt-20 border-t border-cova-border bg-cova-surface">
+    <footer className="border-t border-cova-border bg-cova-surface">
       <div className="mx-auto grid max-w-site gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.6fr_1fr_1fr_1.2fr]">
         <div>
           <div className="flex items-center gap-2.5">

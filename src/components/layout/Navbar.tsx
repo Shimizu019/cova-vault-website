@@ -42,7 +42,7 @@ function Navbar() {
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-cova-border bg-cova-bg/95 shadow-nav backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-cova-border bg-cova-bg/80 shadow-nav backdrop-blur-xl">
       <nav aria-label="Primary" className="mx-auto flex max-w-site items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
         <Link to="/" className="flex min-h-[44px] items-center gap-2.5 pr-2">
           <BrandMark className="h-7 w-7" />
@@ -56,7 +56,7 @@ function Navbar() {
                 to={link.to}
                 className={({ isActive }) =>
                   `relative flex min-h-[44px] items-center rounded-btn px-3 text-sm font-medium transition ${
-                    isActive ? 'text-cova-text' : 'text-cova-muted hover:text-cova-text'
+                    isActive ? 'bg-cova-elevated text-cova-text' : 'text-cova-muted hover:bg-cova-elevated/60 hover:text-cova-text'
                   }`
                 }
               >
