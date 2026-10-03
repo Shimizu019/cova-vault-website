@@ -8,7 +8,11 @@ export const platformDownloads: PlatformDownload[] = [
     fileFormat: 'apk',
     version: latestRelease.version,
     releaseDate: latestRelease.publishedAt,
-    requirements: ['Android device', 'Ability to install APK from GitHub Releases'],
+    apkSize: latestRelease.apkSize,
+    requirements: [
+      `Android 7.0 (API 24) or newer`,
+      'Ability to install an APK from the official GitHub Releases',
+    ],
     downloadUrl: latestRelease.apkUrl,
     githubReleaseUrl: latestRelease.githubReleaseUrl,
   },

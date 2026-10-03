@@ -1,25 +1,31 @@
 import { Link } from 'react-router-dom';
 
+type Variant = 'primary' | 'secondary' | 'outline' | 'ghost';
+type Size = 'sm' | 'md' | 'lg';
+
 interface ButtonProps {
   to?: string;
   href?: string;
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: Variant;
+  size?: Size;
   className?: string;
   disabled?: boolean;
 }
 
-const base = 'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg font-semibold transition focus-visible:outline-none';
-const variants: Record<string, string> = {
-  primary: 'bg-cova-primary px-5 py-3 text-sm text-white hover:bg-cova-accent',
-  secondary: 'border border-cova-border bg-cova-surface px-5 py-3 text-sm text-cova-text hover:border-cova-accent',
-  outline: 'border-2 border-cova-primary bg-transparent px-5 py-2.5 text-sm text-cova-accent hover:bg-cova-primary hover:text-white',
+const base =
+  'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-btn font-semibold transition focus-visible:outline-none';
+const variants: Record<Variant, string> = {
+  primary: 'bg-cova-primary text-white hover:bg-cova-hover',
+  secondary:
+    'border border-cova-border bg-cova-surface text-cova-text hover:border-cova-primary/50 hover:text-cova-accent',
+  outline: 'border border-cova-primary bg-transparent text-cova-accent hover:bg-cova-primary hover:text-white',
+  ghost: 'text-cova-muted hover:bg-cova-elevated hover:text-cova-text',
 };
-const sizes: Record<string, string> = {
-  sm: 'px-4 py-2 text-xs',
-  md: 'px-5 py-3 text-sm',
-  lg: 'px-6 py-3.5 text-base',
+const sizes: Record<Size, string> = {
+  sm: 'px-3.5 text-xs',
+  md: 'px-5 text-sm',
+  lg: 'px-6 text-base',
 };
 
 function Button({ to, href, children, variant = 'primary', size = 'md', className = '', disabled = false }: ButtonProps) {

@@ -10,6 +10,7 @@ export interface PlatformDownload {
   requirements?: string[];
   downloadUrl?: string;
   githubReleaseUrl?: string;
+  apkSize?: string;
   checksum?: string;
 }
 

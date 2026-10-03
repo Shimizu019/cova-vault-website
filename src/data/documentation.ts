@@ -7,7 +7,7 @@ export const documentationTopics: DocumentationTopic[] = [
     summary: 'Understand what Cova Vault is and how the modules fit together.',
     body: [
       'Cova Vault bundles password storage, notes, tasks, finance tracking, savings goals, favorites, and a unified activity log in one responsive interface.',
-      'Start with Dashboard for an overview, then open the module you need: Credentials, Notes, Tasks, PeraLog, Savings, Folders, Favorites, or Calendar.',
+      'Open the module you need — Credentials, Notes, Tasks, PeraLog, My Wallet, Savings, Folders, Favorites, or Calendar — and organize it your way.',
     ],
     relatedFeatures: ['credentials', 'notes', 'tasks'],
   },
@@ -17,6 +17,8 @@ export const documentationTopics: DocumentationTopic[] = [
     summary: 'Get the Android APK from the official GitHub Releases page.',
     body: [
       'Android is available as an APK from Shimizu019/cova-vault GitHub Releases.',
+      'The app requires Android 7.0 (API 24) or newer.',
+      'The app declares only the INTERNET permission in the Android project.',
       'Download only from the official release page and verify the file name and version before installing.',
       'Windows is coming soon; there is currently no Windows executable.',
     ],
@@ -28,6 +30,7 @@ export const documentationTopics: DocumentationTopic[] = [
     summary: 'What to expect the first time you open Cova Vault.',
     body: [
       'Open the installed app and create the information you want to organize.',
+      'Set your own master password in Settings — the app starts from a default first-run value that should not be kept.',
       'Start with Credentials and Notes; add tasks, finance, and savings as needed.',
       'Exact first-run behavior should match the current Android app; refer to the app itself for the latest flow.',
     ],
@@ -76,10 +79,12 @@ export const documentationTopics: DocumentationTopic[] = [
   {
     id: 'wallet',
     title: 'My Wallet',
-    summary: 'Organize cash and digital money.',
+    summary: 'See your current-month wallet balance, built from PeraLog activity.',
     body: [
-      'My Wallet organizes physical cash alongside digital wallets.',
-      'Track balances in one place and review the total across cash and digital money.',
+      'My Wallet shows your total wallet balance for the current month on the Dashboard.',
+      'The balance is built from your starting balance plus your income and expense records.',
+      'Record income and expenses with categories in PeraLog, and set a budget per category to track spending against a limit.',
+      'Amounts are kept in Philippine pesos, and expense entries can record the cash given and the change due.',
     ],
     relatedFeatures: ['wallet'],
   },
@@ -112,12 +117,24 @@ export const documentationTopics: DocumentationTopic[] = [
     relatedFeatures: ['calendar', 'tasks'],
   },
   {
+    id: 'activity-log',
+    title: 'Activity Log',
+    summary: 'See everything happening in your vault in one place.',
+    body: [
+      'The app keeps a unified activity log of what is happening inside your vault.',
+      'Review your vault activity without needing any website account or sync service.',
+    ],
+    relatedFeatures: ['activity-log'],
+  },
+  {
     id: 'backup',
     title: 'Backup & Export',
-    summary: 'Only treated as verified when documented by the Android project.',
+    summary: 'Export an encrypted backup file and import it again later.',
     body: [
-      'The Android project documents client-side persistence behavior in its own repository.',
-      'Do not assume cloud sync, automatic backup, or account recovery exists unless a verified release documents it.',
+      'Settings → Backup & Export manages your encrypted backups and exports.',
+      'An exported backup is a JSON file of encrypted data, written as cova-backup-YYYY-MM-DD.json, so it is only readable with the same key.',
+      'Importing an encrypted backup file restores the data it contains.',
+      'There is no automatic or cloud backup — the file is only as safe as where you save it, so keep your own safe copies.',
     ],
     relatedFeatures: [],
   },
@@ -126,7 +143,8 @@ export const documentationTopics: DocumentationTopic[] = [
     title: 'Security',
     summary: 'Read the factual Security page before making trust decisions.',
     body: [
-      'Only the security behavior documented by the Android project should be treated as verified.',
+      'Vault data is persisted through an encrypted storage layer; the Android project derives keys with PBKDF2-SHA256 (100,000 iterations) and encrypts with AES-GCM (256-bit).',
+      'The app locks behind a master password. On first run it accepts the project default until you set your own in Settings.',
       'See the Security page for limitations and user responsibility.',
     ],
     relatedFeatures: [],

@@ -6,11 +6,19 @@ function NotFound() {
   return (
     <>
       <SEO title="Page not found" description="This page does not exist." />
-      <Container className="py-24 text-center">
-        <h1 className="text-3xl font-bold">Page not found</h1>
-        <p className="mt-3 text-cova-muted">The page you requested does not exist.</p>
-        <div className="mt-6 flex justify-center">
-          <Button to="/" variant="primary">Back to home</Button>
+      <Container className="py-24 text-center lg:py-32">
+        <p className="font-mono text-sm font-semibold text-cova-accent">404</p>
+        <h1 className="mt-4 text-display font-bold text-cova-text">Page not found</h1>
+        <p className="mx-auto mt-4 max-w-md text-base text-cova-muted">
+          The page you requested does not exist or may have moved.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Button to="/" variant="primary">
+            Back to home
+          </Button>
+          <Button to="/download" variant="secondary">
+            Go to Download
+          </Button>
         </div>
       </Container>
     </>
