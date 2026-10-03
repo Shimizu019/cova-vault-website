@@ -1,5 +1,7 @@
 # Cova Vault Website
 
+> Remote initial title preserved from `origin/main`: `cova-vault-website`.
+
 ## Project Structure
 
 This repository contains the official Cova Vault website, which presents the Cova Vault application and serves as a distribution point for the Android application.
