@@ -3,6 +3,7 @@ import Container from '../components/common/Container';
 import SectionHeading from '../components/common/SectionHeading';
 import PlatformCard from '../components/cards/PlatformCard';
 import Button from '../components/buttons/Button';
+import DownloadCounter from '../components/common/DownloadCounter';
 import { platformDownloads } from '../data/platforms';
 import { latestRelease, releases, ANDROID_RELEASES_URL, releaseChannel, releaseChannelLabel } from '../config/site/site';
 
@@ -26,7 +27,10 @@ function Download() {
               <PlatformCard key={platform.platform} platform={platform} />
             ))}
           </div>
-          <p className="mt-6 text-center text-sm text-cova-faint">
+
+          <DownloadCounter align="center" className="mt-6" />
+
+          <p className="mt-4 text-center text-sm text-cova-faint">
             Android releases are distributed from <span className="font-mono">Shimizu019/cova-vault</span> GitHub Releases.
           </p>
         </Container>
