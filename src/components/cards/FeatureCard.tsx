@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import type { Feature } from '../../types';
 import { moduleMeta } from '../../data/moduleMeta';
 
@@ -40,7 +41,7 @@ function FeatureCard({ feature, size = 'default' }: FeatureCardProps) {
         className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-cova-accent hover:underline"
       >
         Read docs
-        <span aria-hidden="true">→</span>
+        <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
       </Link>
     </article>
   );
