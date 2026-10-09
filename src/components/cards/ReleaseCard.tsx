@@ -20,8 +20,8 @@ function ReleaseCard({ release, showDownload = false, featured = false }: Releas
   const channel = releaseChannel(release);
   return (
     <article
-      className={`relative rounded-card border bg-cova-surface shadow-card ${
-        featured ? 'border-cova-primary/40 p-6 sm:p-7' : 'border-cova-border p-6'
+      className={`relative rounded-card border bg-cova-surface p-6 shadow-card ${
+        featured ? 'border-cova-primary/40' : 'border-cova-border'
       }`}
     >
       <div className="flex flex-wrap items-center gap-2">
