@@ -47,7 +47,7 @@ function About() {
         <Container>
           <div className="mx-auto grid max-w-4xl gap-4 sm:grid-cols-2">
             {facts.map((fact) => (
-              <article key={fact.label} className="rounded-card border border-cova-border bg-cova-bg p-6 shadow-card">
+              <article key={fact.label} className="rounded-card border border-cova-border bg-cova-elevated p-6 shadow-card">
                 <h2 className="text-base font-semibold text-cova-text">{fact.label}</h2>
                 <p className="mt-3 text-sm leading-relaxed text-cova-muted">{fact.body}</p>
               </article>
@@ -76,27 +76,33 @@ function About() {
         </Container>
       </section>
 
-      <section className="border-t border-cova-border bg-cova-surface py-16 lg:py-20">
+      <section className="py-16 lg:py-20">
         <Container className="max-w-4xl">
           <SectionHeading align="left" eyebrow="Repositories" title="Explore the project" />
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <a
               href={siteConfig.androidRepoUrl}
-              className="rounded-card border border-cova-border bg-cova-surface p-6 shadow-card transition hover:-translate-y-0.5 hover:border-cova-primary/50"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-card border border-cova-border bg-cova-surface p-6 shadow-card transition hover:border-cova-primary/50"
             >
               <h3 className="text-base font-semibold text-cova-text">Android repository</h3>
-              <p className="mt-2 text-sm text-cova-muted">{siteConfig.androidRepo}</p>
+              <p className="mt-2 font-mono text-sm text-cova-muted">{siteConfig.androidRepo}</p>
             </a>
             <a
               href={siteConfig.websiteRepoUrl}
-              className="rounded-card border border-cova-border bg-cova-surface p-6 shadow-card transition hover:-translate-y-0.5 hover:border-cova-primary/50"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-card border border-cova-border bg-cova-surface p-6 shadow-card transition hover:border-cova-primary/50"
             >
               <h3 className="text-base font-semibold text-cova-text">Website repository</h3>
-              <p className="mt-2 text-sm text-cova-muted">{siteConfig.websiteRepo}</p>
+              <p className="mt-2 font-mono text-sm text-cova-muted">{siteConfig.websiteRepo}</p>
             </a>
             <a
               href={siteConfig.androidReleasesUrl}
-              className="rounded-card border border-cova-border bg-cova-surface p-6 shadow-card transition hover:-translate-y-0.5 hover:border-cova-primary/50"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-card border border-cova-border bg-cova-surface p-6 shadow-card transition hover:border-cova-primary/50"
             >
               <h3 className="text-base font-semibold text-cova-text">GitHub Releases</h3>
               <p className="mt-2 text-sm text-cova-muted">Official Android downloads</p>
