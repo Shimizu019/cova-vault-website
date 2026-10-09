@@ -20,7 +20,7 @@ function ModulesSection() {
             return (
               <div key={group.key}>
                 <div className="flex items-center justify-center gap-2.5">
-                  <span className={`grid h-8 w-8 place-items-center rounded-lg ${group.tint}`} aria-hidden="true">
+                  <span className={`grid h-8 w-8 place-items-center rounded-btn ${group.tint}`} aria-hidden="true">
                     <GroupIcon className="h-4 w-4" />
                   </span>
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-cova-text">{group.label}</h3>
