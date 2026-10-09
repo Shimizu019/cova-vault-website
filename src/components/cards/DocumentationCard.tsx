@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import type { DocumentationTopic } from '../../types';
 import { topicIcon } from '../../data/topicIcons';
 
@@ -19,9 +20,7 @@ function DocumentationCard({ topic }: { topic: DocumentationTopic }) {
       <p className="mt-2 flex-1 text-sm leading-relaxed text-cova-muted">{topic.summary}</p>
       <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-cova-accent">
         Open guide
-        <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">
-          →
-        </span>
+        <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
       </span>
     </Link>
   );
