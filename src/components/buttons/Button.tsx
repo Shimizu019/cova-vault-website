@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-type Variant = 'primary' | 'secondary' | 'outline' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'ghost';
 type Size = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
@@ -14,12 +14,11 @@ interface ButtonProps {
 }
 
 const base =
-  'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-btn font-semibold transition focus-visible:outline-none';
+  'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-btn font-semibold transition';
 const variants: Record<Variant, string> = {
   primary: 'bg-cova-primary text-white hover:bg-cova-hover',
   secondary:
     'border border-cova-border bg-cova-surface text-cova-text hover:border-cova-primary/50 hover:text-cova-accent',
-  outline: 'border border-cova-primary bg-transparent text-cova-accent hover:bg-cova-primary hover:text-white',
   ghost: 'text-cova-muted hover:bg-cova-elevated hover:text-cova-text',
 };
 const sizes: Record<Size, string> = {
