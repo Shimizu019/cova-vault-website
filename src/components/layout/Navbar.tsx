@@ -87,6 +87,12 @@ function Navbar() {
           </a>
           <ThemeButton mode={mode} cycle={cycle} />
           <Link
+            to="/demo"
+            className="inline-flex min-h-[44px] items-center rounded-btn border border-cova-border px-4 text-sm font-semibold text-cova-text transition hover:border-cova-primary/50 hover:text-cova-accent"
+          >
+            Try Demo
+          </Link>
+          <Link
             to="/download"
             className="ml-1 inline-flex min-h-[44px] items-center rounded-btn bg-cova-primary px-4 text-sm font-semibold text-white transition hover:bg-cova-hover"
           >
@@ -131,6 +137,12 @@ function Navbar() {
             ))}
           </ul>
           <div className="mt-4 grid gap-2">
+            <Link
+              to="/demo"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-btn border border-cova-border px-4 text-sm font-semibold text-cova-text"
+            >
+              Try Demo
+            </Link>
             <Link
               to="/download"
               className="inline-flex min-h-[44px] items-center justify-center rounded-btn bg-cova-primary px-4 text-sm font-semibold text-white"
