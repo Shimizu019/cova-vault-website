@@ -4,6 +4,8 @@ import DownloadButton from '../buttons/DownloadButton';
 import Button from '../buttons/Button';
 import GitHubIcon from '../common/GitHubIcon';
 import PhoneMockup from '../common/PhoneMockup';
+import DownloadCounter from '../common/DownloadCounter';
+import { PlayCircle } from 'lucide-react';
 import siteConfig, { latestRelease } from '../../config/site/site';
 
 function HeroSection() {
@@ -36,9 +38,13 @@ function HeroSection() {
           </p>
 
           {/* Primary + secondary CTA on one row; stacks only on mobile */}
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <DownloadButton />
-            <Button to="/features" variant="secondary" size="lg">
+            <Button to="/demo" variant="secondary" size="lg">
+              <PlayCircle className="h-4 w-4" aria-hidden="true" />
+              Try Demo
+            </Button>
+            <Button to="/features" variant="ghost" size="lg">
               Explore Features
             </Button>
           </div>
@@ -63,6 +69,8 @@ function HeroSection() {
             </span>
             <span>Android 7.0+</span>
           </p>
+
+          <DownloadCounter className="mt-4" />
 
           <p className="mt-4 max-w-[60ch] text-sm text-cova-faint">
             Free, no account — straight from official GitHub Releases
