@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTheme } from '../../hooks/useTheme';
 import siteConfig from '../../config/site/site';
-import BrandMark from '../common/BrandMark';
+import CovaLogo from '../common/CovaLogo';
 import ThemeButton from './ThemeButton';
 
 const links = [
@@ -44,9 +44,8 @@ function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-cova-border bg-cova-bg/80 shadow-nav backdrop-blur-xl">
       <nav aria-label="Primary" className="mx-auto flex max-w-site items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
-        <Link to="/" className="flex min-h-[44px] items-center gap-2.5 pr-2">
-          <BrandMark className="h-7 w-7" />
-          <span className="text-base font-bold tracking-tight text-cova-text">Cova Vault</span>
+        <Link to="/" className="flex min-h-[44px] items-center pr-2">
+          <CovaLogo className="h-7 w-auto" />
         </Link>
 
         <ul className="hidden items-center gap-0.5 lg:flex">
