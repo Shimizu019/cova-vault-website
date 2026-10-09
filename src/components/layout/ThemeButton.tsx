@@ -1,19 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { useTheme } from '../../hooks/useTheme';
-import siteConfig from '../../config/site/site';
-import BrandMark from '../common/BrandMark';
-
-const links = [
-  { to: '/', label: 'Home' },
-  { to: '/features', label: 'Features' },
-  { to: '/security', label: 'Security' },
-  { to: '/download', label: 'Download' },
-  { to: '/changelog', label: 'Changelog' },
-  { to: '/documentation', label: 'Documentation' },
-  { to: '/about', label: 'About' },
-];
-
 function ThemeButton({ mode, cycle }: { mode: string; cycle: () => void }) {
   const label = mode === 'light' ? 'Light theme' : mode === 'system' ? 'System theme' : 'Dark theme';
   return (
