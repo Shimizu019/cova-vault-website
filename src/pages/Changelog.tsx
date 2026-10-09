@@ -35,7 +35,7 @@ function Changelog() {
               <li key={release.tag} className="relative">
                 <span
                   aria-hidden="true"
-                  className="absolute -left-[30px] top-6 h-2.5 w-2.5 rounded-full border-2 border-cova-bg bg-cova-border"
+                  className="absolute -left-[31px] top-6 h-2.5 w-2.5 rounded-full border-2 border-cova-bg bg-cova-border"
                 />
                 <ReleaseCard release={release} showDownload />
               </li>
