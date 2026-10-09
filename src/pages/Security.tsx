@@ -2,6 +2,7 @@ import SEO from '../components/common/SEO';
 import Container from '../components/common/Container';
 import SectionHeading from '../components/common/SectionHeading';
 import Button from '../components/buttons/Button';
+import { ChevronRight } from 'lucide-react';
 import siteConfig from '../config/site/site';
 
 interface SecurityTopic {
@@ -116,7 +117,7 @@ function Security() {
         <Container>
           <ul className="mx-auto grid max-w-4xl gap-4">
             {topics.map((topic) => (
-              <li key={topic.title} className="rounded-card border border-cova-border bg-cova-bg p-6 shadow-card">
+              <li key={topic.title} className="rounded-card border border-cova-border bg-cova-elevated p-6 shadow-card">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-base font-semibold text-cova-text">{topic.title}</h2>
                   <span
@@ -162,7 +163,8 @@ function Security() {
               Security in documentation
             </Button>
             <Button href={siteConfig.androidRepoUrl} variant="ghost">
-              Review the Android repository →
+              Review the Android repository
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </Container>
