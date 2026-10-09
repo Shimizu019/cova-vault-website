@@ -65,7 +65,7 @@ function HeroSection() {
           </p>
 
           <p className="mt-4 max-w-[60ch] text-sm text-cova-faint">
-            Latest release {latestRelease.tag} · Download from official GitHub Releases · Free, no account
+            Free, no account — straight from official GitHub Releases
           </p>
         </div>
 
