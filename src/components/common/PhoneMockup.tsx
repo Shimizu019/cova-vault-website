@@ -1,11 +1,11 @@
 import { Check, BatteryFull, Bell, Home, KeyRound, Receipt, Settings, Signal, StickyNote, Wifi } from 'lucide-react';
-import BrandMark from './BrandMark';
+import lockLogo from '../../assets/images/lockLogo.png';
 
 /**
- * Illustrative Cova Vault dashboard preview, built entirely with CSS/SVG
- * (no external images). It is clearly labelled as a preview, and every amount
- * mirrors the example values already used in WalletPanel — it is never a real
- * screenshot and never real user data.
+ * Illustrative Cova Vault dashboard preview, built with CSS/SVG plus the
+ * official lock logo asset in the app bar. It is clearly labelled as a
+ * preview, and every amount mirrors the example values already used in
+ * WalletPanel — it is never a real screenshot and never real user data.
  */
 
 const tasks = [
@@ -48,7 +48,7 @@ function PhoneMockup() {
             {/* App bar */}
             <div className="flex items-center justify-between px-4 pb-3 pt-2">
               <span className="flex items-center gap-2">
-                <BrandMark className="h-5 w-5" />
+                <img src={lockLogo} alt="" width={510} height={489} className="h-5 w-5 object-contain" />
                 <span className="text-[13px] font-bold tracking-tight text-[#eaf2fb]">Cova Vault</span>
               </span>
               <span className="grid h-7 w-7 place-items-center rounded-full bg-white/5 text-[#8fa6bf]">
