@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import siteConfig from '../../config/site/site';
-import BrandMark from '../common/BrandMark';
+import CovaLogo from '../common/CovaLogo';
 
 const columns = [
   {
@@ -32,9 +32,8 @@ function Footer() {
     <footer className="border-t border-cova-border bg-cova-surface">
       <div className="mx-auto grid max-w-site gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.6fr_1fr_1fr_1.2fr]">
         <div>
-          <div className="flex items-center gap-2.5">
-            <BrandMark className="h-7 w-7" />
-            <span className="text-base font-bold tracking-tight text-cova-text">Cova Vault</span>
+          <div className="flex items-center">
+            <CovaLogo className="h-7 w-auto" />
           </div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-cova-muted">
             A personal vault for keeping your everyday information organized. Android is available now;
