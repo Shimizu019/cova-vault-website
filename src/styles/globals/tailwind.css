@@ -121,6 +121,146 @@ summary:focus-visible,
 }
 
 @layer components {
+  /* ------------------------------------------------------------------
+   * Interactive `/demo` application-shell primitives.
+   * These class names are used exclusively by the demo preview so the
+   * marketing pages are unaffected. Every value resolves to an existing
+   * `cova-*` design token so dark/light themes stay in sync.
+   * ------------------------------------------------------------------ */
+
+  /* Text fields, selects, and textareas inside the demo app shell.
+   * Width is intentionally left to the caller so `w-auto` selects still work. */
+  .input {
+    @apply block rounded-btn border border-cova-border bg-cova-bg px-3 py-2.5 text-sm leading-normal text-cova-text transition-colors placeholder:text-cova-faint;
+  }
+  .input:hover:not(:disabled) {
+    @apply border-cova-faint/60;
+  }
+  .input:focus {
+    @apply border-cova-primary outline-none ring-1 ring-cova-primary;
+  }
+  .input:disabled {
+    @apply cursor-not-allowed opacity-60;
+  }
+  .input[aria-invalid='true'] {
+    @apply border-cova-danger;
+  }
+  .input[aria-invalid='true']:focus {
+    @apply ring-cova-danger;
+  }
+
+  /* Field label above an input. */
+  .label {
+    @apply mb-1.5 flex flex-wrap items-baseline gap-1 text-xs font-semibold text-cova-muted;
+  }
+  .label .req {
+    @apply font-bold text-cova-danger;
+  }
+
+  /* Inline validation message for a single field. */
+  .field-error {
+    @apply mt-1.5 flex items-start gap-1.5 text-xs font-medium text-cova-danger;
+  }
+
+  /* Data tables (Credentials / Favorites). */
+  .table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  .table thead th {
+    @apply whitespace-nowrap border-b border-cova-border bg-cova-elevated px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-cova-faint;
+  }
+  .table tbody td {
+    @apply border-b border-cova-border/60 px-4 py-3 align-middle text-cova-text;
+  }
+  .table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .table tbody tr {
+    @apply transition-colors;
+  }
+  .table tbody tr:hover td {
+    @apply bg-cova-elevated/50;
+  }
+
+  /* Buttons shared by the demo screens. */
+  .btn {
+    @apply inline-flex min-h-[40px] cursor-pointer items-center justify-center gap-2 rounded-btn px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cova-accent focus-visible:ring-offset-2 focus-visible:ring-offset-cova-bg disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-cova-primary text-white hover:bg-cova-hover;
+  }
+  .btn-secondary {
+    @apply btn border border-cova-border bg-cova-surface text-cova-text hover:border-cova-primary/50 hover:text-cova-primary;
+  }
+  .btn-ghost {
+    @apply btn px-3 text-cova-muted hover:bg-cova-elevated hover:text-cova-text;
+  }
+  .btn-danger {
+    @apply btn bg-cova-danger/10 text-cova-danger hover:bg-cova-danger hover:text-white;
+  }
+  .btn-sm {
+    @apply min-h-[32px] px-3 text-xs;
+  }
+
+  /* Icon-only action buttons with a comfortable hit area. */
+  .icon-btn {
+    @apply inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-btn text-cova-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cova-accent focus-visible:ring-offset-2 focus-visible:ring-offset-cova-bg disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Navigation rows in the desktop sidebar and mobile drawer. */
+  .sidebar-item {
+    @apply flex w-full items-center gap-3 rounded-btn px-3 py-2.5 text-left text-sm font-medium text-cova-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cova-accent focus-visible:ring-offset-2 focus-visible:ring-offset-cova-surface;
+  }
+  .sidebar-item:hover {
+    @apply bg-cova-elevated text-cova-text;
+  }
+  .sidebar-item-active,
+  .sidebar-item-active:hover {
+    @apply bg-cova-primary/15 text-cova-primary;
+  }
+  .sidebar-item-active {
+    box-shadow: inset 3px 0 0 0 rgb(var(--cova-primary-rgb));
+  }
+
+  /* Empty / no-results states. */
+  .empty-state {
+    @apply flex flex-col items-center justify-center px-6 py-12 text-center;
+  }
+  .empty-state-icon {
+    @apply mb-3 grid h-14 w-14 place-items-center rounded-panel border border-cova-border bg-cova-elevated text-cova-faint;
+  }
+  .empty-state-title {
+    @apply text-base font-semibold text-cova-text;
+  }
+  .empty-state-description {
+    @apply mt-1.5 max-w-sm text-sm leading-relaxed text-cova-muted;
+  }
+
+  /* Consistent form scaffolding. */
+  .form-card {
+    @apply rounded-card border border-cova-primary/30 bg-cova-surface p-5 shadow-card;
+  }
+  .form-actions {
+    @apply mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-cova-border pt-4;
+  }
+
+  /* Thin scrollbar for the demo sidebar / drawer. */
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--cova-border-rgb)) transparent;
+  }
+  .scroll-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scroll-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background: rgb(var(--cova-border-rgb));
+    border-radius: 9999px;
+  }
+
   /* Restrained entrance motion (staggered via inline animation-delay) */
   .reveal {
     @apply animate-fade-up;

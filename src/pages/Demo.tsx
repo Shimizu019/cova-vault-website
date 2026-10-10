@@ -1,5 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState, useCallback, useEffect, useRef, type ComponentType } from 'react';
 import {
   LayoutDashboard, Key, Wallet, PiggyBank, StickyNote, ListChecks,
   Folder, Star, Calendar, Clock, KeyRound, Activity, Settings, Lock, Info,
@@ -9,6 +8,7 @@ import SEO from '../components/common/SEO';
 import Container from '../components/common/Container';
 import SectionHeading from '../components/common/SectionHeading';
 import Button from '../components/buttons/Button';
+import CovaLogo from '../components/common/CovaLogo';
 import DemoBanner from '../components/demo/DemoBanner';
 import {
   DemoDashboardPage,
@@ -40,34 +40,63 @@ import {
   type DemoWalletRecord,
 } from '../data/demoData';
 
-const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'credentials', label: 'Credentials', icon: Key },
-  { id: 'wallet', label: 'My Wallet', icon: Wallet },
-  { id: 'savings', label: 'Savings', icon: PiggyBank },
-] as const;
-
-const SAMPLE_ITEMS = [
-  { id: 'notes', label: 'Notes', icon: StickyNote },
-  { id: 'tasks', label: 'Tasks', icon: ListChecks },
-  { id: 'folders', label: 'Folder', icon: Folder },
-  { id: 'favorites', label: 'Favorites', icon: Star },
-  { id: 'calendar', label: 'Calendar', icon: Calendar },
-  { id: 'schedule', label: 'Schedule', icon: Clock },
-  { id: 'generator', label: 'Password Generator', icon: KeyRound },
-] as const;
-
-const SECURITY_ITEMS = [
-  { id: 'activity', label: 'Activity Log', icon: Activity },
-  { id: 'settings', label: 'Settings', icon: Settings },
-  { id: 'lock', label: 'Lock Vault', icon: Lock },
-  { id: 'about', label: 'About', icon: Info },
-] as const;
-
+/** Every navigation destination available in the interactive demo. */
 type DemoNavId =
-  | typeof NAV_ITEMS[number]['id']
-  | typeof SAMPLE_ITEMS[number]['id']
-  | typeof SECURITY_ITEMS[number]['id'];
+  | 'dashboard'
+  | 'credentials'
+  | 'wallet'
+  | 'savings'
+  | 'notes'
+  | 'tasks'
+  | 'folders'
+  | 'favorites'
+  | 'calendar'
+  | 'schedule'
+  | 'generator'
+  | 'activity'
+  | 'settings'
+  | 'lock'
+  | 'about';
+
+interface DemoNavItem {
+  id: DemoNavId;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+}
+
+/** Grouping mirrors the real app's PrimarySidebar: Module / Sample / Security. */
+const NAV_GROUPS: ReadonlyArray<{ title: string; items: readonly DemoNavItem[] }> = [
+  {
+    title: 'Module',
+    items: [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'credentials', label: 'Credentials', icon: Key },
+      { id: 'wallet', label: 'My Wallet', icon: Wallet },
+      { id: 'savings', label: 'Savings', icon: PiggyBank },
+    ],
+  },
+  {
+    title: 'Sample',
+    items: [
+      { id: 'notes', label: 'Notes', icon: StickyNote },
+      { id: 'tasks', label: 'Tasks', icon: ListChecks },
+      { id: 'folders', label: 'Folder', icon: Folder },
+      { id: 'favorites', label: 'Favorites', icon: Star },
+      { id: 'calendar', label: 'Calendar', icon: Calendar },
+      { id: 'schedule', label: 'Schedule', icon: Clock },
+      { id: 'generator', label: 'Password Generator', icon: KeyRound },
+    ],
+  },
+  {
+    title: 'Security',
+    items: [
+      { id: 'activity', label: 'Activity Log', icon: Activity },
+      { id: 'settings', label: 'Settings', icon: Settings },
+      { id: 'lock', label: 'Lock', icon: Lock },
+      { id: 'about', label: 'About', icon: Info },
+    ],
+  },
+];
 
 function Demo() {
   const [state, setState] = useState<DemoState>(() => createInitialDemoState());
@@ -177,80 +206,119 @@ function Demo() {
 
   const openTasks = useMemo(() => state.tasks.filter(t => t.status !== 'done').length, [state.tasks]);
 
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
   const handleNavClick = (id: DemoNavId) => {
     setActiveNav(id);
     setOpenFolder(null);
     setMobileNavOpen(false);
+    setUserDropdownOpen(false);
+    // On narrow screens focus returns to the app header once the drawer closes.
+    menuButtonRef.current?.focus();
   };
 
+  // Escape closes the drawer / user menu and restores focus to the trigger.
+  useEffect(() => {
+    if (!mobileNavOpen && !userDropdownOpen) return undefined;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (mobileNavOpen) {
+        setMobileNavOpen(false);
+        menuButtonRef.current?.focus();
+      }
+      setUserDropdownOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [mobileNavOpen, userDropdownOpen]);
+
+  // Prevent the page behind the slide-in drawer from scrolling.
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileNavOpen]);
+
+  // Move focus into the drawer as soon as it opens.
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    drawerRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [mobileNavOpen]);
+
+  // Close the profile menu when clicking or tapping outside of it.
+  useEffect(() => {
+    if (!userDropdownOpen) return undefined;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!userMenuRef.current?.contains(event.target as Node)) setUserDropdownOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [userDropdownOpen]);
+
   const screenTitle = useMemo(() => {
-    const all = [...NAV_ITEMS, ...SAMPLE_ITEMS, ...SECURITY_ITEMS];
-    return all.find(item => item.id === activeNav)?.label ?? 'Dashboard';
+    for (const group of NAV_GROUPS) {
+      const match = group.items.find(item => item.id === activeNav);
+      if (match) return match.label;
+    }
+    return 'Dashboard';
   }, [activeNav]);
 
+  const renderNavItem = (item: DemoNavItem) => {
+    const isActive = activeNav === item.id;
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => handleNavClick(item.id)}
+        aria-current={isActive ? 'page' : undefined}
+        className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
+      >
+        <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="truncate">{item.label}</span>
+      </button>
+    );
+  };
+
   const renderSidebarNav = () => (
-    <>
-      <div className="mb-5">
-        <h3 className="px-3 mb-1.5 text-xs font-semibold text-cova-faint uppercase tracking-wider">Module</h3>
-        <nav className="space-y-0.5" aria-label="Module navigation">
-          {NAV_ITEMS.map(item => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => handleNavClick(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-btn text-sm font-medium transition-colors ${
-                activeNav === item.id
-                  ? 'bg-cova-primary/15 text-cova-primary'
-                  : 'text-cova-muted hover:bg-cova-elevated hover:text-cova-text'
-              }`}
-            >
-              <item.icon className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </button>
-          ))}
-        </nav>
+    <div className="space-y-5">
+      {NAV_GROUPS.map(group => (
+        <div key={group.title}>
+          <h3 className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-cova-faint">
+            {group.title}
+          </h3>
+          <nav className="space-y-0.5" aria-label={`${group.title} navigation`}>
+            {group.items.map(renderNavItem)}
+          </nav>
+        </div>
+      ))}
+    </div>
+  );
+
+  /** Brand block shared by the desktop sidebar and the mobile drawer. */
+  const renderBrand = (onClose?: () => void) => (
+    <div className="flex items-center justify-between gap-3 border-b border-cova-border px-4 py-4">
+      <div className="min-w-0">
+        <CovaLogo className="h-6 w-auto" alt="Cova Vault" />
+        <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-wider text-cova-faint">
+          Demo mode
+        </p>
       </div>
-      <div className="mb-5">
-        <h3 className="px-3 mb-1.5 text-xs font-semibold text-cova-faint uppercase tracking-wider">Sample</h3>
-        <nav className="space-y-0.5" aria-label="Sample navigation">
-          {SAMPLE_ITEMS.map(item => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => handleNavClick(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-btn text-sm font-medium transition-colors ${
-                activeNav === item.id
-                  ? 'bg-cova-primary/15 text-cova-primary'
-                  : 'text-cova-muted hover:bg-cova-elevated hover:text-cova-text'
-              }`}
-            >
-              <item.icon className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-      <div className="mb-5">
-        <h3 className="px-3 mb-1.5 text-xs font-semibold text-cova-faint uppercase tracking-wider">Security</h3>
-        <nav className="space-y-0.5" aria-label="Security navigation">
-          {SECURITY_ITEMS.map(item => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => handleNavClick(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-btn text-sm font-medium transition-colors ${
-                activeNav === item.id
-                  ? 'bg-cova-primary/15 text-cova-primary'
-                  : 'text-cova-muted hover:bg-cova-elevated hover:text-cova-text'
-              }`}
-            >
-              <item.icon className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-    </>
+      {onClose ? (
+        <button
+          type="button"
+          onClick={onClose}
+          className="icon-btn -mr-1 shrink-0"
+          aria-label="Close navigation"
+        >
+          <X className="h-5 w-5" aria-hidden="true" />
+        </button>
+      ) : null}
+    </div>
   );
 
   const renderScreen = () => {
@@ -262,6 +330,7 @@ function Demo() {
             notes={state.notes}
             tasks={state.tasks}
             openTasks={openTasks}
+            wallets={state.wallets}
             activity={state.activity}
           />
         );
@@ -278,6 +347,7 @@ function Demo() {
       case 'wallet':
         return (
           <DemoWalletPage
+            wallets={state.wallets}
             records={state.walletRecords}
             onAddWallet={addWallet}
             onReset={resetDemo}
@@ -397,24 +467,27 @@ function Demo() {
           </div>
 
           {/* App-like shell */}
-          <div className="mt-6 rounded-card border border-cova-border bg-cova-bg overflow-hidden shadow-card">
+          <div className="mt-6 overflow-hidden rounded-card border border-cova-border bg-cova-bg shadow-card">
             <div className="flex min-h-[600px]">
               {/* Desktop sidebar */}
-              <aside className="hidden md:flex md:flex-col w-64 flex-shrink-0 bg-cova-surface border-r border-cova-border overflow-y-auto">
-                <div className="px-4 py-5 border-b border-cova-border">
-                  <p className="text-sm font-bold text-cova-text">Cova Vault</p>
-                  <p className="text-xs text-cova-faint">Demo mode</p>
-                </div>
-                <div className="px-3 py-4 flex-1">
-                  {renderSidebarNav()}
-                </div>
-                <div className="mx-3 mb-4 p-4 rounded-card bg-cova-primary/10 border border-cova-primary/30">
-                  <h4 className="text-sm font-semibold text-cova-text mb-1">Upgrade Pro</h4>
-                  <p className="text-xs text-cova-muted mb-3">Unlock 2FA, backup and more.</p>
+              <aside
+                className="scroll-thin hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-cova-border bg-cova-surface md:flex"
+                aria-label="Application navigation"
+              >
+                {renderBrand()}
+                <div className="flex-1 px-3 py-4">{renderSidebarNav()}</div>
+                <div className="mx-3 mb-4 rounded-card border border-cova-primary/30 bg-gradient-to-br from-cova-primary/15 to-cova-violet/15 p-4">
+                  <span className="mb-2 grid h-8 w-8 place-items-center rounded-btn bg-cova-primary/25 text-cova-primary">
+                    <Star className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <h4 className="text-sm font-semibold text-cova-text">Upgrade Pro</h4>
+                  <p className="mt-0.5 text-xs leading-relaxed text-cova-muted">
+                    Unlock 2FA, backup and more.
+                  </p>
                   <button
                     type="button"
                     onClick={() => addActivity('Viewed upgrade prompt', 'credentials')}
-                    className="w-full text-xs py-1.5 rounded-btn bg-cova-primary hover:bg-cova-primaryHover text-white font-medium transition-colors"
+                    className="btn btn-sm btn-primary mt-3 w-full"
                   >
                     Upgrade
                   </button>
@@ -424,7 +497,7 @@ function Demo() {
               {/* Mobile drawer overlay */}
               {mobileNavOpen && (
                 <div
-                  className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                  className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity md:hidden"
                   onClick={() => setMobileNavOpen(false)}
                   aria-hidden="true"
                 />
@@ -432,82 +505,96 @@ function Demo() {
 
               {/* Mobile drawer */}
               <div
-                className={`md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-cova-surface border-r border-cova-border transform transition-transform duration-300 ease-out ${
-                  mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
+                id="demo-drawer"
+                ref={drawerRef}
+                className={`fixed inset-y-0 left-0 z-50 flex w-[min(17rem,82vw)] flex-col border-r border-cova-border bg-cova-surface transition-[transform,visibility] duration-300 ease-out md:hidden ${
+                  mobileNavOpen ? 'visible translate-x-0' : 'invisible -translate-x-full'
                 }`}
                 role="dialog"
-                aria-modal="true"
+                aria-modal={mobileNavOpen ? 'true' : undefined}
                 aria-label="Demo navigation"
               >
-                <div className="px-4 py-5 border-b border-cova-border flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-cova-text">Cova Vault</p>
-                    <p className="text-xs text-cova-faint">Demo mode</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setMobileNavOpen(false)}
-                    className="p-2 rounded text-cova-muted hover:text-cova-text"
-                    aria-label="Close navigation"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="px-3 py-4 overflow-y-auto h-[calc(100%-80px)]">
-                  {renderSidebarNav()}
-                </div>
+                {renderBrand(() => setMobileNavOpen(false))}
+                <div className="scroll-thin flex-1 overflow-y-auto px-3 py-4">{renderSidebarNav()}</div>
               </div>
 
               {/* Main content area */}
               <div className="flex-1 flex flex-col min-w-0">
-                <header className="flex items-center gap-3 px-4 py-3 border-b border-cova-border bg-cova-surface">
+                <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-cova-border bg-cova-surface px-3 py-2 sm:gap-3 sm:px-4">
                   <button
+                    ref={menuButtonRef}
                     type="button"
                     onClick={() => setMobileNavOpen(true)}
-                    className="md:hidden p-2 rounded text-cova-muted hover:text-cova-text"
+                    className="icon-btn shrink-0 md:hidden"
                     aria-label="Open navigation"
+                    aria-expanded={mobileNavOpen}
+                    aria-controls="demo-drawer"
                   >
-                    <Menu className="w-5 h-5" />
+                    <Menu className="h-5 w-5" aria-hidden="true" />
                   </button>
-                  <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cova-faint pointer-events-none" />
+
+                  <p
+                    className="min-w-0 flex-1 truncate text-sm font-semibold text-cova-text sm:flex-none"
+                    title={screenTitle}
+                  >
+                    {screenTitle}
+                  </p>
+
+                  <div className="relative ml-auto hidden w-full max-w-[15rem] sm:block lg:max-w-xs">
+                    <Search
+                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cova-faint"
+                      aria-hidden="true"
+                    />
                     <input
                       type="search"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search..."
-                      className="input pl-9 pr-3 w-full"
+                      className="input h-9 w-full py-0 pl-9 pr-3"
                       aria-label="Search demo"
                     />
                   </div>
-                  <div className="relative">
+
+                  <div ref={userMenuRef} className="relative shrink-0">
                     <button
                       type="button"
-                      onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                      className="flex items-center gap-2 p-1.5 rounded-full hover:bg-cova-elevated transition-colors"
-                      aria-label="User menu"
+                      onClick={() => setUserDropdownOpen(open => !open)}
+                      className="flex items-center gap-1.5 rounded-badge p-1 transition-colors hover:bg-cova-elevated"
+                      aria-label="Profile menu"
+                      aria-haspopup="menu"
+                      aria-expanded={userDropdownOpen}
                     >
-                      <div className="w-8 h-8 rounded-full bg-cova-primary/15 flex items-center justify-center">
-                        <User className="w-4 h-4 text-cova-primary" />
-                      </div>
-                      <ChevronDown className="w-3 h-3 text-cova-faint hidden sm:block" />
+                      <span className="grid h-8 w-8 place-items-center rounded-full bg-cova-primary/15">
+                        <User className="h-4 w-4 text-cova-primary" aria-hidden="true" />
+                      </span>
+                      <ChevronDown
+                        className={`hidden h-3.5 w-3.5 text-cova-faint transition-transform sm:block ${
+                          userDropdownOpen ? 'rotate-180' : ''
+                        }`}
+                        aria-hidden="true"
+                      />
                     </button>
                     {userDropdownOpen && (
-                      <div className="absolute right-0 top-full mt-1 w-48 rounded-card border border-cova-border bg-cova-surface shadow-card py-1 z-10">
+                      <div
+                        role="menu"
+                        className="absolute right-0 top-full z-30 mt-1.5 w-48 overflow-hidden rounded-card border border-cova-border bg-cova-surface py-1 shadow-dialog"
+                      >
                         <button
                           type="button"
+                          role="menuitem"
                           onClick={() => { setUserDropdownOpen(false); setLocked(true); }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-cova-muted hover:bg-cova-elevated hover:text-cova-text transition-colors text-left"
+                          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-cova-muted transition-colors hover:bg-cova-elevated hover:text-cova-text"
                         >
-                          <Lock className="w-4 h-4" />
+                          <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />
                           <span>Lock Vault</span>
                         </button>
                         <button
                           type="button"
+                          role="menuitem"
                           onClick={() => { setUserDropdownOpen(false); resetDemo(); }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-cova-danger hover:bg-cova-danger/10 transition-colors text-left"
+                          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-cova-danger transition-colors hover:bg-cova-danger/10"
                         >
-                          <LogOut className="w-4 h-4" />
+                          <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
                           <span>Reset Demo</span>
                         </button>
                       </div>
@@ -515,7 +602,7 @@ function Demo() {
                   </div>
                 </header>
 
-                <div className="flex-1 overflow-auto bg-cova-bg">
+                <div className="scroll-thin min-w-0 flex-1 overflow-auto bg-cova-bg">
                   {renderScreen()}
                 </div>
               </div>

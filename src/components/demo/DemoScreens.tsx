@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { Check, Eye, EyeOff, KeyRound, StickyNote, ListChecks, Wallet, Activity, PiggyBank, Star, LayoutDashboard, Folder, Calendar, Clock, Key, ExternalLink, Shield, Settings, LogOut, Lock, Info, Book, Mail, Plus, Trash2, Pencil, Search, CloudDownload, RefreshCw, FolderOpen, ArrowLeftRight, Landmark, Smartphone, Bell, Sliders, Globe, HardDrive, Thermometer, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
+import { Check, X, Eye, EyeOff, KeyRound, StickyNote, ListChecks, Wallet, Activity, PiggyBank, Star, LayoutDashboard, Folder, Calendar, Clock, Key, ExternalLink, Shield, Settings, LogOut, Lock, Info, Book, Mail, Plus, Trash2, Pencil, Search, CloudDownload, RefreshCw, FolderOpen, ArrowLeftRight, Landmark, Smartphone, Bell, Sliders, Globe, HardDrive, Thermometer, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
 import {
   formatPeso,
-  DEMO_WALLET_SUMMARY,
   type DemoCredential,
   type DemoNote,
   type DemoTask,
@@ -16,10 +15,71 @@ import {
 
 // --- Demo-local utilities ---
 
+/**
+ * In-memory toast feedback for the demo.
+ *
+ * Mirrors the real app's `addToast` helper so save/error messages are actually
+ * visible to the visitor instead of being written to the developer console.
+ * Nothing is persisted — the queue lives in module scope for the lifetime of
+ * the page and clears itself on every `Reset Demo` / refresh.
+ */
+type DemoToast = { id: number; message: string; type: 'success' | 'error' | 'info' };
+
+type DemoToastListener = (toast: DemoToast) => void;
+
+let toastListeners: DemoToastListener[] = [];
+let toastSeq = 0;
+
 function addToast(message: string, type: 'success' | 'error' | 'info' = 'info') {
-  // Simple console-based feedback for the demo
-  if (type === 'error') console.warn('[Demo]', message);
-  else console.log('[Demo]', message);
+  const toast: DemoToast = { id: ++toastSeq, message, type };
+  toastListeners.forEach(listener => listener(toast));
+}
+
+/** Stack of transient toast messages, rendered once by the demo shell. */
+export function DemoToasts() {
+  const [toasts, setToasts] = React.useState<DemoToast[]>([]);
+
+  React.useEffect(() => {
+    const listener: DemoToastListener = toast => {
+      setToasts(prev => [...prev, toast]);
+      window.setTimeout(() => {
+        setToasts(prev => prev.filter(entry => entry.id !== toast.id));
+      }, 3200);
+    };
+    toastListeners.push(listener);
+    return () => {
+      toastListeners = toastListeners.filter(entry => entry !== listener);
+    };
+  }, []);
+
+  if (toasts.length === 0) return null;
+
+  const styles: Record<DemoToast['type'], string> = {
+    success: 'border-cova-success/50 text-cova-success',
+    error: 'border-cova-danger/50 text-cova-danger',
+    info: 'border-cova-primary/50 text-cova-primary',
+  };
+
+  return (
+    <div
+      className="pointer-events-none fixed inset-x-3 bottom-3 z-[70] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:items-end"
+      role="status"
+      aria-live="polite"
+    >
+      {toasts.map(toast => (
+        <div
+          key={toast.id}
+          className={`pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-card border bg-cova-surface px-4 py-3 text-sm font-medium shadow-dialog animate-fade-up ${styles[toast.type]}`}
+        >
+          <span className="mt-0.5" aria-hidden="true">
+            {toast.type === 'success' ? <Check className="h-4 w-4" /> :
+              toast.type === 'error' ? <X className="h-4 w-4" /> : <Info className="h-4 w-4" />}
+          </span>
+          <span className="min-w-0 flex-1 text-cova-text">{toast.message}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function getDomainFromUrl(url: string): string {
@@ -34,8 +94,8 @@ function maskPassword(password: string): string {
   return '•'.repeat(Math.min(password.length, 16));
 }
 
-// Simple Input component for demo forms
-function Input({ value, onChange, placeholder, type, min, step, maxLength, autoFocus, className, id }: {
+// Shared text field used by every demo form.
+function Input({ value, onChange, placeholder, type, min, step, maxLength, autoFocus, className, id, invalid, autoComplete, inputMode }: {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
@@ -46,6 +106,9 @@ function Input({ value, onChange, placeholder, type, min, step, maxLength, autoF
   autoFocus?: boolean;
   className?: string;
   id?: string;
+  invalid?: boolean;
+  autoComplete?: string;
+  inputMode?: 'text' | 'numeric' | 'decimal' | 'email' | 'url';
 }) {
   return (
     <input
@@ -57,7 +120,10 @@ function Input({ value, onChange, placeholder, type, min, step, maxLength, autoF
       min={min}
       step={step}
       maxLength={maxLength}
+      inputMode={inputMode}
+      autoComplete={autoComplete}
       autoFocus={autoFocus}
+      aria-invalid={invalid ? 'true' : undefined}
       className={`input w-full ${className || ''}`}
     />
   );
@@ -65,13 +131,169 @@ function Input({ value, onChange, placeholder, type, min, step, maxLength, autoF
 
 export function Panel({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-card border border-cova-border bg-cova-surface p-5 shadow-card sm:p-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-base font-semibold text-cova-text">{title}</h3>
+    <section className="overflow-hidden rounded-card border border-cova-border bg-cova-surface shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cova-border px-5 py-3.5">
+        <h3 className="text-sm font-semibold text-cova-text">{title}</h3>
         {hint ? <p className="text-xs text-cova-faint">{hint}</p> : null}
       </div>
-      <div className="mt-4">{children}</div>
+      <div className="px-5 py-4">{children}</div>
     </section>
+  );
+}
+
+/**
+ * Page heading shared by every module screen so titles, supporting text and
+ * actions stay aligned no matter which screen is open.
+ */
+export function PageHeader({ icon: Icon, title, subtitle, count, actions }: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle?: string;
+  count?: number;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="flex items-center gap-2.5 text-xl font-bold text-cova-text">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-btn border border-cova-border bg-cova-elevated text-cova-primary">
+            <Icon className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <span className="truncate">{title}</span>
+          {typeof count === 'number' ? (
+            <span className="rounded-badge border border-cova-border bg-cova-elevated px-2 py-0.5 text-xs font-medium text-cova-muted">
+              {count}
+            </span>
+          ) : null}
+        </h1>
+        {subtitle ? <p className="mt-1.5 text-sm text-cova-muted">{subtitle}</p> : null}
+      </div>
+      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+    </div>
+  );
+}
+
+/** Label + control + inline validation message. */
+export function Field({ label, htmlFor, required, hint, error, children }: {
+  label: string;
+  htmlFor?: string;
+  required?: boolean;
+  hint?: string;
+  error?: string | null;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="label" htmlFor={htmlFor}>
+        <span>{label}</span>
+        {required ? <span className="req" aria-hidden="true">*</span> : null}
+        {!required && hint ? <span className="font-normal text-cova-faint">{hint}</span> : null}
+      </label>
+      {children}
+      {error ? (
+        <p className="field-error" role="alert">
+          <X className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Consistent inline "add new" form used across the module screens.
+ *
+ * Handles the awkward parts once, in one place: Escape to dismiss, focus moved
+ * into the form on open and restored to the triggering control on close, a
+ * single form-level validation message, and a predictable Save / Cancel pair.
+ */
+export function FormCard({ title, description, submitLabel = 'Save', onClose, onSubmit, error, children }: {
+  title: string;
+  description?: string;
+  submitLabel?: string;
+  onClose: () => void;
+  onSubmit: () => void;
+  error?: string | null;
+  children: React.ReactNode;
+}) {
+  const rootRef = React.useRef<HTMLFormElement>(null);
+  const openerRef = React.useRef<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    rootRef.current?.querySelector<HTMLElement>('input, textarea, select')?.focus();
+    const returnFocus = openerRef.current;
+    return () => {
+      if (returnFocus && document.contains(returnFocus)) returnFocus.focus();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
+  return (
+    <form
+      ref={rootRef}
+      className="form-card mb-6"
+      noValidate
+      onSubmit={(event) => { event.preventDefault(); onSubmit(); }}
+    >
+      <div className="flex items-start justify-between gap-3 border-b border-cova-border pb-3">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold text-cova-text">{title}</h3>
+          {description ? <p className="mt-0.5 text-xs text-cova-muted">{description}</p> : null}
+        </div>
+        <button type="button" onClick={onClose} className="icon-btn -mr-1.5 -mt-1 shrink-0" aria-label="Close form">
+          <X className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+
+      <div className="mt-4 space-y-4">{children}</div>
+
+      <div className="form-actions">
+        <p className="mr-auto text-xs text-cova-faint">
+          Fields marked <span className="font-bold text-cova-danger">*</span> are required.
+        </p>
+        <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
+        <button type="submit" className="btn btn-primary">{submitLabel}</button>
+      </div>
+
+      {error ? (
+        <p className="field-error mt-3" role="alert">
+          <X className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </p>
+      ) : null}
+    </form>
+  );
+}
+
+/** Uniform empty / no-results treatment for every list screen. */
+export function EmptyState({ icon: Icon, title, description, action }: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-card border border-cova-border bg-cova-surface shadow-card">
+      <div className="empty-state">
+        <span className="empty-state-icon">
+          <Icon className="h-6 w-6" aria-hidden="true" />
+        </span>
+        <p className="empty-state-title">{title}</p>
+        <p className="empty-state-description">{description}</p>
+        {action ? <div className="mt-4">{action}</div> : null}
+      </div>
+    </div>
   );
 }
 
@@ -84,53 +306,130 @@ export const TINT_ROSE = 'text-rose-400 light:text-rose-600 bg-rose-500/10 ring-
 export const TINT_AMBER = 'text-amber-400 light:text-amber-600 bg-amber-500/10 ring-1 ring-inset ring-amber-500/30';
 
 function StatCard({ icon: Icon, label, value, tint }: {
-  icon: typeof Key;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   tint: string;
 }) {
   return (
-    <div className="rounded-card border border-cova-border bg-cova-surface p-4 shadow-card">
-      <span className={`grid h-9 w-9 place-items-center rounded-btn ${tint}`} aria-hidden="true">
-        <Icon className="h-[18px] w-[18px]" />
+    <div className="flex items-center gap-3.5 rounded-card border border-cova-border bg-cova-surface p-4 shadow-card">
+      <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-btn ${tint}`} aria-hidden="true">
+        <Icon className="h-5 w-5" />
       </span>
-      <p className="mt-3 text-xl font-bold text-cova-text">{value}</p>
-      <p className="mt-1 text-xs font-medium text-cova-muted">{label}</p>
+      <div className="min-w-0">
+        <p className="truncate text-xs font-semibold uppercase tracking-wider text-cova-faint">{label}</p>
+        <p className="mt-1 truncate text-lg font-bold text-cova-text" title={value}>{value}</p>
+      </div>
     </div>
   );
 }
 
-export function DemoDashboardPage({ credentials, notes, tasks, openTasks, activity }: {
+const ACTIVITY_TINTS: Record<DemoActivityType, string> = {
+  credentials: TINT_BLUE,
+  notes: TINT_TEAL,
+  tasks: TINT_AMBER,
+  wallet: TINT_GREEN,
+  savings: TINT_INDIGO,
+};
+
+const ACTIVITY_ICONS: Record<DemoActivityType, React.ComponentType<{ className?: string }>> = {
+  credentials: Key,
+  notes: StickyNote,
+  tasks: ListChecks,
+  wallet: Wallet,
+  savings: PiggyBank,
+};
+
+/**
+ * Dashboard mirrors the real app's landing screen: greeting, purple backup
+ * reminder, four metric cards, and a recent-activity feed. Every number is
+ * derived from the shared demo state so it stays in sync after sample data
+ * changes.
+ */
+export function DemoDashboardPage({ credentials, notes, tasks, openTasks, wallets, activity }: {
   credentials: DemoCredential[];
   notes: DemoNote[];
   tasks: DemoTask[];
   openTasks: number;
+  wallets: DemoWallet[];
   activity: DemoActivity[];
 }) {
+  const walletBalance = wallets.reduce((sum, wallet) => sum + wallet.startingBalance, 0);
+  const recent = [...activity].reverse().slice(0, 6);
+
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="space-y-5 p-4 sm:p-6">
+      {/* Greeting */}
+      <div>
+        <h1 className="text-2xl font-bold text-cova-text">Good to see you, Demo.</h1>
+        <p className="mt-1 text-sm text-cova-muted">Here's everything across your Safe Vault.</p>
+      </div>
+
+      {/* Backup reminder — a demo illustration only, nothing is ever uploaded. */}
+      <div
+        className="flex flex-col gap-4 rounded-panel border border-cova-primary/30 p-5 sm:flex-row sm:items-center sm:gap-4"
+        style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' }}
+        role="note"
+        aria-label="Backup reminder"
+      >
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-white/15 backdrop-blur-sm">
+          <CloudDownload className="h-6 w-6 text-white" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-semibold text-white">No Backup yet</h2>
+          <p className="mt-0.5 text-sm leading-relaxed text-white/80">
+            Your Safe Vault only lives on this device. This reminder is a demo illustration —
+            nothing here is saved or uploaded anywhere.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => addToast('Backup is a demo illustration — nothing was saved or sent.', 'info')}
+          className="btn shrink-0 bg-white text-[#5B21B6] hover:bg-white/90 sm:w-auto"
+        >
+          Backup Now!
+        </button>
+      </div>
+
+      {/* Metric cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Key} label="Credentials" value={String(credentials.length)} tint={TINT_BLUE} />
         <StatCard icon={StickyNote} label="Notes" value={String(notes.length)} tint={TINT_TEAL} />
-        <StatCard icon={ListChecks} label="Open tasks" value={String(openTasks)} tint={TINT_GREEN} />
-        <StatCard icon={Wallet} label="Wallet balance" value={formatPeso(DEMO_WALLET_SUMMARY.balance)} tint={TINT_INDIGO} />
+        <StatCard icon={ListChecks} label="Open Tasks" value={String(openTasks)} tint={TINT_GREEN} />
+        <StatCard icon={Wallet} label="My Wallet" value={formatPeso(walletBalance)} tint={TINT_INDIGO} />
       </div>
-      <Panel title="Recent activity" hint="Sample feed">
-        {activity.length === 0 ? (
-          <p className="text-sm text-cova-faint">No activity yet — try completing a task.</p>
+
+      {/* Recent activity */}
+      <Panel title="Recent Activities" hint={`${activity.length} total`}>
+        {recent.length === 0 ? (
+          <div className="empty-state py-8">
+            <span className="empty-state-icon">
+              <Activity className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <p className="empty-state-title">No activity yet</p>
+            <p className="empty-state-description">Complete a task or add a record to see it here.</p>
+          </div>
         ) : (
-          <ul className="space-y-2.5">
-            {activity.map((entry) => (
-              <li key={entry.id} className="flex items-center gap-3 rounded-btn bg-cova-elevated px-4 py-3">
-                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-btn ${TINT_ROSE}`} aria-hidden="true">
-                  <Activity className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm text-cova-text">{entry.text}</span>
-                  <span className="mt-0.5 block text-xs text-cova-faint">{entry.timestamp}</span>
-                </span>
-              </li>
-            ))}
+          <ul className="divide-y divide-cova-border">
+            {recent.map((entry) => {
+              const Icon = ACTIVITY_ICONS[entry.type] ?? Activity;
+              return (
+                <li key={entry.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                  <span
+                    className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-btn ${ACTIVITY_TINTS[entry.type] ?? TINT_ROSE}`}
+                    aria-hidden="true"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block break-words text-sm text-cova-text">{entry.text}</span>
+                    <span className="mt-0.5 block text-xs capitalize text-cova-faint">
+                      {entry.type} · {entry.timestamp}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Panel>
@@ -150,6 +449,7 @@ export function DemoCredentialsPage({ credentials, revealed, onTogglePassword, o
   const [formUsername, setFormUsername] = React.useState('');
   const [formPassword, setFormPassword] = React.useState('');
   const [formWebsite, setFormWebsite] = React.useState('');
+  const [formError, setFormError] = React.useState<string | null>(null);
 
   const filtered = credentials.filter(c =>
     !search ||
@@ -158,9 +458,25 @@ export function DemoCredentialsPage({ credentials, revealed, onTogglePassword, o
     c.website.toLowerCase().includes(search.toLowerCase())
   );
 
+  const resetForm = () => {
+    setFormName('');
+    setFormUsername('');
+    setFormPassword('');
+    setFormWebsite('');
+    setFormError(null);
+  };
+
   const handleAdd = () => {
-    if (!formName.trim() || !formUsername.trim() || !formPassword.trim()) {
-      addToast('Name, username, and password are required', 'error');
+    const missing = [
+      !formName.trim() ? 'name' : null,
+      !formUsername.trim() ? 'username' : null,
+      !formPassword.trim() ? 'password' : null,
+    ].filter((field): field is string => field !== null);
+
+    if (missing.length > 0) {
+      const message = `Please fill in the required ${missing.length > 1 ? 'fields' : 'field'}: ${missing.join(', ')}.`;
+      setFormError(message);
+      addToast(message, 'error');
       return;
     }
     const newCred: DemoCredential = {
@@ -173,95 +489,70 @@ export function DemoCredentialsPage({ credentials, revealed, onTogglePassword, o
       favorite: false,
     };
     onAddCredential(newCred);
-    addToast('Credential added', 'success');
+    addToast(`Credential "${newCred.name}" added`, 'success');
     setShowAdd(false);
-    setFormName('');
-    setFormUsername('');
-    setFormPassword('');
-    setFormWebsite('');
+    resetForm();
   };
 
   const handleCancel = () => {
     setShowAdd(false);
-    setFormName('');
-    setFormUsername('');
-    setFormPassword('');
-    setFormWebsite('');
+    resetForm();
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-cova-text flex items-center gap-2">
-            <Key className="w-5 h-5 text-cova-primary" aria-hidden="true" /> Credentials
-            <span className="ml-2 px-2 py-0.5 rounded-full bg-cova-surface border border-cova-border text-xs font-medium text-cova-muted">
-              {filtered.length}
-            </span>
-          </h1>
-          <p className="text-sm text-cova-muted mt-1">Manage your stored passwords securely</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cova-faint pointer-events-none" />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search credentials..."
-              className="input pl-9 pr-3 w-full"
-              aria-label="Search credentials"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowAdd(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-          >
-            <Plus className="w-4 h-4" /> New
-          </button>
-        </div>
-      </div>
+    <div className="mx-auto max-w-7xl p-4 sm:p-6">
+      <PageHeader
+        icon={Key}
+        title="Credentials"
+        subtitle="Manage your stored passwords securely"
+        count={filtered.length}
+        actions={
+          <>
+            <div className="relative w-full sm:w-64">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cova-faint"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search credentials..."
+                className="input h-10 w-full pl-9 pr-3"
+                aria-label="Search credentials"
+              />
+            </div>
+            <button type="button" onClick={() => setShowAdd(true)} className="btn btn-primary">
+              <Plus className="h-4 w-4" aria-hidden="true" /> New
+            </button>
+          </>
+        }
+      />
 
       {showAdd && (
-        <div className="mb-6 rounded-card border border-cova-border bg-cova-surface p-5 shadow-card">
-          <h3 className="text-base font-semibold text-cova-text">Add Credential</h3>
-          <div className="mt-4 space-y-3">
-            <div>
-              <label className="label">Name <span className="text-cova-danger">*</span></label>
-              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Example Mail" autoFocus />
-            </div>
-            <div>
-              <label className="label">Username <span className="text-cova-danger">*</span></label>
-              <Input value={formUsername} onChange={(e) => setFormUsername(e.target.value)} placeholder="demo.user@example.com" />
-            </div>
-            <div>
-              <label className="label">Password <span className="text-cova-danger">*</span></label>
-              <Input value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder="DemoPass!2024" />
-            </div>
-            <div>
-              <label className="label">Website</label>
-              <Input value={formWebsite} onChange={(e) => setFormWebsite(e.target.value)} placeholder="https://example.com" />
-            </div>
-            <p className="text-xs text-cova-faint">This is a fictional demo — never enter real passwords here.</p>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2 rounded-btn border border-cova-border bg-cova-surface text-cova-text text-sm font-semibold hover:border-cova-primary/50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleAdd}
-              className="px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-            >
-              Save
-            </button>
-          </div>
-        </div>
+        <FormCard
+          title="Add Credential"
+          description="Saved to this browser session only — never sent anywhere."
+          onClose={handleCancel}
+          onSubmit={handleAdd}
+          error={formError}
+        >
+          <Field label="Name" htmlFor="cred-name" required>
+            <Input id="cred-name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Example Mail" invalid={!formName.trim()} />
+          </Field>
+          <Field label="Username" htmlFor="cred-username" required>
+            <Input id="cred-username" value={formUsername} onChange={(e) => setFormUsername(e.target.value)} placeholder="demo.user@example.com" autoComplete="off" invalid={!formUsername.trim()} />
+          </Field>
+          <Field label="Password" htmlFor="cred-password" required>
+            <Input id="cred-password" type="password" value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder="DemoPass!2024" invalid={!formPassword.trim()} />
+          </Field>
+          <Field label="Website" htmlFor="cred-website" hint="optional">
+            <Input id="cred-website" value={formWebsite} onChange={(e) => setFormWebsite(e.target.value)} placeholder="https://example.com" />
+          </Field>
+          <p className="rounded-btn border border-cova-warning/30 bg-cova-warning/10 px-3 py-2 text-xs leading-relaxed text-cova-muted">
+            This is a fictional demo — never enter real passwords here.
+          </p>
+        </FormCard>
       )}
 {filtered.length > 0 ? (
         <div className="rounded-card border border-cova-border bg-cova-surface shadow-card overflow-hidden">
@@ -279,55 +570,67 @@ export function DemoCredentialsPage({ credentials, revealed, onTogglePassword, o
                 {filtered.map((cred) => {
                   const isVisible = revealed.includes(cred.id);
                   return (
-                    <tr key={cred.id} className="border-b border-cova-border/50 hover:bg-cova-elevated/40 transition-colors">
-                      <td className="py-3 px-4">
+                    <tr key={cred.id}>
+                      <td>
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-btn bg-cova-primary/15 flex items-center justify-center flex-shrink-0">
-                            <Key className="w-4 h-4 text-cova-primary" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-medium text-cova-text truncate flex items-center gap-1">
-                              <Star className={cred.favorite ? "w-3 h-3 text-cova-warning fill-cova-warning" : "w-3 h-3 text-cova-faint"} flex-shrink-0 />{cred.name}
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-btn bg-cova-primary/15 text-cova-primary">
+                            <Key className="h-4 w-4" aria-hidden="true" />
+                          </span>
+                          <div className="min-w-0 max-w-[16rem]">
+                            <div className="flex items-center gap-1.5 font-medium text-cova-text">
+                              <Star
+                                className={`h-3.5 w-3.5 shrink-0 ${cred.favorite ? 'fill-cova-warning text-cova-warning' : 'text-cova-faint'}`}
+                                aria-label={cred.favorite ? 'Favorite' : undefined}
+                              />
+                              <span className="truncate" title={cred.name}>{cred.name}</span>
                             </div>
-                            <div className="text-xs text-cova-faint truncate">{cred.website || '—'}</div>
+                            <div className="truncate text-xs text-cova-faint" title={getDomainFromUrl(cred.website)}>
+                              {getDomainFromUrl(cred.website) || '—'}
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="text-sm text-cova-muted truncate block max-w-[200px]">{cred.username}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-mono text-sm text-cova-text">
-                          {isVisible ? cred.password : '•'.repeat(12)}
+                      <td>
+                        <span className="block max-w-[13rem] truncate text-sm text-cova-muted" title={cred.username}>
+                          {cred.username}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td>
+                        <span className="block max-w-[13rem] truncate font-mono text-sm text-cova-text" title={isVisible ? cred.password : undefined}>
+                          {isVisible ? cred.password : maskPassword(cred.password)}
+                        </span>
+                      </td>
+                      <td>
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
-                            onClick={() => onTogglePassword(cred.id)}
-                            className="p-1.5 rounded text-cova-muted hover:bg-cova-elevated hover:text-cova-text transition-colors"
-                            aria-label={isVisible ? "Hide password" : "Show password"}
+                            onClick={() => {
+                              navigator.clipboard?.writeText(cred.password);
+                              addToast('Password copied to clipboard', 'success');
+                            }}
+                            className="icon-btn"
+                            aria-label={`Copy password for ${cred.name}`}
                           >
-                            {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            <Copy className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onTogglePassword(cred.id)}
+                            className="icon-btn"
+                            aria-label={isVisible ? `Hide password for ${cred.name}` : `Show password for ${cred.name}`}
+                            aria-pressed={isVisible}
+                          >
+                            {isVisible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
                           </button>
                           <button
                             type="button"
                             onClick={() => onToggleFavorite(cred.id)}
-                            className="p-1.5 rounded text-cova-warning hover:bg-cova-elevated transition-colors"
-                            aria-label="Toggle favorite"
+                            className={`icon-btn hover:text-cova-warning ${cred.favorite ? 'text-cova-warning' : ''}`}
+                            aria-label={cred.favorite ? `Remove ${cred.name} from favorites` : `Add ${cred.name} to favorites`}
+                            aria-pressed={cred.favorite}
                           >
-                            <Star className={cred.favorite ? "w-4 h-4 fill-cova-warning text-cova-warning" : "w-4 h-4 text-cova-warning"} />
+                            <Star className={`h-4 w-4 ${cred.favorite ? 'fill-cova-warning text-cova-warning' : ''}`} aria-hidden="true" />
                           </button>
-                          <div className="relative">
-                            <button
-                              type="button"
-                              className="p-1.5 rounded text-cova-muted hover:bg-cova-elevated hover:text-cova-text transition-colors"
-                              aria-label="More actions"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </button>
-                          </div>
                         </div>
                       </td>
                     </tr>
@@ -338,30 +641,47 @@ export function DemoCredentialsPage({ credentials, revealed, onTogglePassword, o
           </div>
         </div>
       ) : (
-        <div className="rounded-card border border-cova-border bg-cova-surface p-8 shadow-card">
-          <div className="text-center">
-            <Key className="w-16 h-16 text-cova-faint mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-cova-text">No credentials found</h3>
-            <p className="mt-2 text-sm text-cova-muted">Start by adding a sample credential.</p>
-          </div>
-        </div>
+        <EmptyState
+          icon={Key}
+          title={search ? 'No credentials found' : 'No credentials yet'}
+          description={search
+            ? `Nothing matches “${search}”. Try a different search term.`
+            : 'Add a sample credential to see how the vault stores logins, usernames and passwords.'}
+          action={
+            search ? (
+              <button type="button" onClick={() => setSearch('')} className="btn btn-secondary">Clear search</button>
+            ) : (
+              <button type="button" onClick={() => setShowAdd(true)} className="btn btn-primary">
+                <Plus className="h-4 w-4" aria-hidden="true" /> Add credential
+              </button>
+            )
+          }
+        />
       )}
     </div>
   );
 }
-export function DemoWalletPage({ records, onAddWallet, onReset }: {
+export function DemoWalletPage({ wallets, records, onAddWallet, onReset }: {
+  wallets: DemoWallet[];
   records: DemoWalletRecord[];
   onAddWallet: (wallet: DemoWallet) => void;
   onReset: () => void;
 }) {
   const [showAdd, setShowAdd] = React.useState(false);
   const [walletName, setWalletName] = React.useState('');
-  const [walletType, setWalletType] = React.useState<'cash' | 'digital' | 'bank' | 'other'>('cash');
+  const [walletType, setWalletType] = React.useState<DemoWallet['type']>('cash');
   const [walletAmount, setWalletAmount] = React.useState('0');
+  const [formError, setFormError] = React.useState<string | null>(null);
+
+  const totalBalance = wallets.reduce((sum, wallet) => sum + wallet.startingBalance, 0);
+  const totalIncome = records.filter(r => r.type === 'income').reduce((sum, r) => sum + r.amount, 0);
+  const totalExpenses = records.filter(r => r.type === 'expense').reduce((sum, r) => sum + r.amount, 0);
 
   const handleAdd = () => {
     if (!walletName.trim()) {
-      addToast('Wallet name is required', 'error');
+      const message = 'Wallet name is required.';
+      setFormError(message);
+      addToast(message, 'error');
       return;
     }
     const newWallet: DemoWallet = {
@@ -371,10 +691,12 @@ export function DemoWalletPage({ records, onAddWallet, onReset }: {
       startingBalance: parseFloat(walletAmount) || 0,
     };
     onAddWallet(newWallet);
-    addToast('Wallet added successfully', 'success');
+    addToast(`Wallet "${newWallet.name}" added`, 'success');
     setShowAdd(false);
     setWalletName('');
+    setWalletType('cash');
     setWalletAmount('0');
+    setFormError(null);
   };
 
   const handleCancel = () => {
@@ -382,106 +704,170 @@ export function DemoWalletPage({ records, onAddWallet, onReset }: {
     setWalletName('');
     setWalletType('cash');
     setWalletAmount('0');
+    setFormError(null);
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
-      <h1 className="text-xl font-bold text-cova-text flex items-center gap-2">
-        <Wallet className="w-5 h-5 text-cova-primary" aria-hidden="true" /> My Wallet
-      </h1>
-      <p className="text-sm text-cova-muted mt-1">Manage your wallet balances and transactions</p>
-
-      <button
-        type="button"
-        onClick={() => setShowAdd(true)}
-        className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-      >
-        <Plus className="w-4 h-4" /> Add Wallet
-      </button>
+    <div className="mx-auto max-w-5xl p-4 sm:p-6">
+      <PageHeader
+        icon={Wallet}
+        title="My Wallet (PeraLog)"
+        subtitle="Manage your wallet balances and transactions"
+        count={wallets.length}
+        actions={
+          <button type="button" onClick={() => setShowAdd(true)} className="btn btn-primary">
+            <Plus className="h-4 w-4" aria-hidden="true" /> Add Wallet
+          </button>
+        }
+      />
 
       {showAdd && (
-        <div className="mt-4 rounded-card border border-cova-border bg-cova-surface p-5 shadow-card">
-          <h3 className="text-base font-semibold text-cova-text">Add Wallet</h3>
-          <div className="mt-4 space-y-4">
-            <div>
-              <label className="label">Wallet Name <span className="text-cova-danger">*</span></label>
-              <Input
-                value={walletName}
-                onChange={(e) => setWalletName(e.target.value)}
-                placeholder="e.g. GCash, Maya, Cash"
-                maxLength={40}
-              />
-            </div>
-            <div>
-              <label className="label">Type</label>
-              <select
-                value={walletType}
-                onChange={(e) => setWalletType(e.target.value as typeof walletType)}
-                className="input w-full"
-              >
-                <option value="cash">Cash</option>
-                <option value="digital">Digital Wallet</option>
-                <option value="bank">Bank</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label className="label">Starting Amount (₱)</label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={walletAmount}
-                onChange={(e) => setWalletAmount(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2 rounded-btn border border-cova-border bg-cova-surface text-cova-text text-sm font-semibold hover:border-cova-primary/50 transition"
+        <FormCard
+          title="Add Wallet"
+          description="Sample wallets stay in memory for this preview only."
+          onClose={handleCancel}
+          onSubmit={handleAdd}
+          error={formError}
+        >
+          <Field label="Wallet Name" htmlFor="wallet-name" required>
+            <Input
+              id="wallet-name"
+              value={walletName}
+              onChange={(e) => setWalletName(e.target.value)}
+              placeholder="e.g. GCash, Maya, Cash"
+              maxLength={40}
+              invalid={!walletName.trim()}
+            />
+          </Field>
+          <Field label="Type" htmlFor="wallet-type">
+            <select
+              id="wallet-type"
+              value={walletType}
+              onChange={(e) => setWalletType(e.target.value as DemoWallet['type'])}
+              className="input w-full"
             >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleAdd}
-              className="px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-            >
-              Save
-            </button>
-          </div>
-        </div>
+              <option value="cash">Cash</option>
+              <option value="digital">Digital Wallet</option>
+              <option value="bank">Bank</option>
+              <option value="other">Other</option>
+            </select>
+          </Field>
+          <Field label="Starting Amount (₱)" htmlFor="wallet-amount" hint="optional">
+            <Input
+              id="wallet-amount"
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={walletAmount}
+              onChange={(e) => setWalletAmount(e.target.value)}
+              placeholder="0.00"
+            />
+          </Field>
+        </FormCard>
       )}
 
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {records.map((record) => (
-          <div key={record.id} className="rounded-card border border-cova-border bg-cova-surface p-4 shadow-card">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-semibold text-cova-text">{record.description}</p>
-                <p className="text-xs text-cova-faint">{record.category}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xl font-bold text-cova-success">{formatPeso(record.amount)}</p>
-                <p className="text-xs text-cova-faint">{record.type === 'income' ? 'Income' : 'Expense'}</p>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Financial summary — three equal cards so no single balance dominates. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-card border border-cova-primary/40 bg-cova-surface p-4 shadow-card">
+          <p className="text-xs font-semibold uppercase tracking-wider text-cova-faint">Total Balance</p>
+          <p className="mt-1.5 truncate text-xl font-bold text-cova-text" title={formatPeso(totalBalance)}>
+            {formatPeso(totalBalance)}
+          </p>
+          <p className="mt-1 text-xs text-cova-muted">{wallets.length} wallet{wallets.length === 1 ? '' : 's'}</p>
+        </div>
+        <div className="rounded-card border border-cova-border bg-cova-surface p-4 shadow-card">
+          <p className="text-xs font-semibold uppercase tracking-wider text-cova-faint">Income</p>
+          <p className="mt-1.5 truncate text-xl font-bold text-cova-success" title={formatPeso(totalIncome)}>
+            {formatPeso(totalIncome)}
+          </p>
+          <p className="mt-1 text-xs text-cova-muted">This period</p>
+        </div>
+        <div className="rounded-card border border-cova-border bg-cova-surface p-4 shadow-card">
+          <p className="text-xs font-semibold uppercase tracking-wider text-cova-faint">Expenses</p>
+          <p className="mt-1.5 truncate text-xl font-bold text-cova-danger" title={formatPeso(totalExpenses)}>
+            {formatPeso(totalExpenses)}
+          </p>
+          <p className="mt-1 text-xs text-cova-muted">This period</p>
+        </div>
       </div>
 
-      {records.length === 0 ? (
-        <div className="mt-6 rounded-card border border-cova-border bg-cova-surface p-8 shadow-card">
-          <div className="text-center">
-            <Wallet className="w-16 h-16 text-cova-faint mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-cova-text">No wallets yet</h3>
-            <p className="mt-2 text-sm text-cova-muted">Add a wallet to get started.</p>
-          </div>
-        </div>
-      ) : null}
+      {/* Wallets */}
+      <div className="mt-6">
+        <Panel title="Wallets" hint={`${wallets.length} total`}>
+          {wallets.length === 0 ? (
+            <div className="empty-state py-8">
+              <span className="empty-state-icon">
+                <Wallet className="h-6 w-6" aria-hidden="true" />
+              </span>
+              <p className="empty-state-title">No wallets yet</p>
+              <p className="empty-state-description">Add a wallet to start tracking balances.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-cova-border">
+              {wallets.map(wallet => (
+                <li key={wallet.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-btn bg-cova-primary/15 text-cova-primary">
+                    <Landmark className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-cova-text" title={wallet.name}>{wallet.name}</p>
+                    <p className="text-xs capitalize text-cova-faint">{wallet.type}</p>
+                  </div>
+                  <p className="shrink-0 text-sm font-semibold text-cova-text">
+                    {formatPeso(wallet.startingBalance)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
+
+      {/* Transactions */}
+      <div className="mt-6">
+        <Panel title="Transaction history" hint={`${records.length} record${records.length === 1 ? '' : 's'}`}>
+          {records.length === 0 ? (
+            <div className="empty-state py-8">
+              <span className="empty-state-icon">
+                <ArrowLeftRight className="h-6 w-6" aria-hidden="true" />
+              </span>
+              <p className="empty-state-title">No transactions yet</p>
+              <p className="empty-state-description">Sample income and expenses will appear here.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-cova-border">
+              {records.map(record => {
+                const isIncome = record.type === 'income';
+                return (
+                  <li key={record.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <span
+                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-btn ${isIncome ? TINT_GREEN : TINT_ROSE}`}
+                      aria-hidden="true"
+                    >
+                      <ArrowLeftRight className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-cova-text" title={record.description}>
+                        {record.description}
+                      </p>
+                      <p className="truncate text-xs text-cova-faint">
+                        {record.category} · {record.date}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className={`text-sm font-semibold ${isIncome ? 'text-cova-success' : 'text-cova-danger'}`}>
+                        {isIncome ? '+' : '−'}{formatPeso(record.amount)}
+                      </p>
+                      <p className="text-[11px] capitalize text-cova-faint">{record.type}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
+      </div>
     </div>
   );
 }
@@ -494,11 +880,23 @@ export function DemoSavingsPage({ goals, onCreateGoal, onDeleteGoal }: {
   const [showNew, setShowNew] = React.useState(false);
   const [draftName, setDraftName] = React.useState('');
   const [draftTarget, setDraftTarget] = React.useState('');
+  const [formError, setFormError] = React.useState<string | null>(null);
+
+  const totalCurrent = goals.reduce((sum, goal) => sum + goal.current, 0);
+  const totalTarget = goals.reduce((sum, goal) => sum + goal.target, 0);
 
   const handleSave = () => {
     const target = parseFloat(draftTarget);
-    if (!draftName.trim() || isNaN(target) || target <= 0) {
-      addToast('Fill in name and target amount', 'error');
+    if (!draftName.trim()) {
+      const message = 'Please enter a goal name.';
+      setFormError(message);
+      addToast(message, 'error');
+      return;
+    }
+    if (isNaN(target) || target <= 0) {
+      const message = 'Target amount must be greater than ₱0.';
+      setFormError(message);
+      addToast(message, 'error');
       return;
     }
     const newGoal: DemoSavingGoal = {
@@ -508,119 +906,128 @@ export function DemoSavingsPage({ goals, onCreateGoal, onDeleteGoal }: {
       target,
     };
     onCreateGoal(newGoal);
-    addToast('Savings goal created', 'success');
+    addToast(`Savings goal "${newGoal.name}" created`, 'success');
     setShowNew(false);
     setDraftName('');
     setDraftTarget('');
+    setFormError(null);
   };
 
   const handleCancel = () => {
     setShowNew(false);
     setDraftName('');
     setDraftTarget('');
+    setFormError(null);
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-cova-text flex items-center gap-2">
-            <PiggyBank className="w-5 h-5 text-cova-primary" aria-hidden="true" /> Savings
-            <span className="ml-2 px-2 py-0.5 rounded-full bg-cova-surface border border-cova-border text-xs font-medium text-cova-muted">{goals.length}</span>
-          </h1>
-          <p className="text-sm text-cova-muted mt-1">Track your savings goals and progress</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowNew(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-        >
-          <Plus className="w-4 h-4" /> New Goal
-        </button>
-      </div>
+    <div className="mx-auto max-w-5xl p-4 sm:p-6">
+      <PageHeader
+        icon={PiggyBank}
+        title="Savings"
+        subtitle="Track your savings goals and progress"
+        count={goals.length}
+        actions={
+          <button type="button" onClick={() => setShowNew(true)} className="btn btn-primary">
+            <Plus className="h-4 w-4" aria-hidden="true" /> New Goal
+          </button>
+        }
+      />
 
       {showNew && (
-        <div className="mb-6 rounded-card border border-cova-border bg-cova-surface p-5 shadow-card">
-          <h3 className="text-base font-semibold text-cova-text">New Savings Goal</h3>
-          <div className="mt-4 space-y-3">
-            <div>
-              <label className="label">Goal Name <span className="text-cova-danger">*</span></label>
-              <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="e.g. Emergency fund" autoFocus />
-            </div>
-            <div>
-              <label className="label">Target Amount (₱) <span className="text-cova-danger">*</span></label>
-              <Input type="number" min="1" value={draftTarget} onChange={(e) => setDraftTarget(e.target.value)} placeholder="50000" />
-            </div>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2 rounded-btn border border-cova-border bg-cova-surface text-cova-text text-sm font-semibold hover:border-cova-primary/50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-            >
-              Create
-            </button>
-          </div>
-        </div>
+        <FormCard
+          title="New Savings Goal"
+          description="Sample goals are held in memory for this preview only."
+          submitLabel="Create"
+          onClose={handleCancel}
+          onSubmit={handleSave}
+          error={formError}
+        >
+          <Field label="Goal Name" htmlFor="goal-name" required>
+            <Input id="goal-name" value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="e.g. Emergency fund" invalid={!draftName.trim()} />
+          </Field>
+          <Field label="Target Amount (₱)" htmlFor="goal-target" required>
+            <Input id="goal-target" type="number" min="1" inputMode="decimal" value={draftTarget} onChange={(e) => setDraftTarget(e.target.value)} placeholder="50000" invalid={!!draftTarget && (isNaN(parseFloat(draftTarget)) || parseFloat(draftTarget) <= 0)} />
+          </Field>
+        </FormCard>
       )}
 
       {goals.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="rounded-card border border-cova-border bg-cova-surface p-5 shadow-card">
-            <p className="text-xs text-cova-faint uppercase tracking-wider font-semibold">Total Saved</p>
-            <p className="text-2xl font-bold text-cova-text mt-1">{formatPeso(goals.reduce((s, g) => s + g.current, 0))}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-cova-faint">Total Saved</p>
+            <p className="mt-1 truncate text-2xl font-bold text-cova-text" title={formatPeso(totalCurrent)}>{formatPeso(totalCurrent)}</p>
+            <p className="mt-1 text-xs text-cova-muted">of {formatPeso(totalTarget)} targeted</p>
           </div>
           <div className="rounded-card border border-cova-border bg-cova-surface p-5 shadow-card">
-            <p className="text-xs text-cova-faint uppercase tracking-wider font-semibold">Total Target</p>
-            <p className="text-2xl font-bold text-cova-text mt-1">{formatPeso(goals.reduce((s, g) => s + g.target, 0))}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-cova-faint">Total Target</p>
+            <p className="mt-1 truncate text-2xl font-bold text-cova-text" title={formatPeso(totalTarget)}>{formatPeso(totalTarget)}</p>
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-cova-border" role="progressbar"
+              aria-valuenow={totalTarget ? Math.min(Math.round((totalCurrent / totalTarget) * 100), 100) : 0}
+              aria-valuemin={0} aria-valuemax={100} aria-label="Overall savings progress">
+              <div
+                className="h-full rounded-full bg-cova-primary transition-all duration-500"
+                style={{ width: `${totalTarget ? Math.min(Math.round((totalCurrent / totalTarget) * 100), 100) : 0}%` }}
+              />
+            </div>
           </div>
         </div>
       )}
 
       {goals.length === 0 ? (
-        <div className="rounded-card border border-cova-border bg-cova-surface p-8 shadow-card">
-          <div className="text-center">
-            <PiggyBank className="w-16 h-16 text-cova-faint mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-cova-text">No savings goals yet</h3>
-            <p className="mt-2 text-sm text-cova-muted">Set a goal and track your progress over time.</p>
-          </div>
-        </div>
+        <EmptyState
+          icon={PiggyBank}
+          title="No savings goals yet"
+          description="Set a goal and track your progress over time."
+          action={
+            <button type="button" onClick={() => setShowNew(true)} className="btn btn-primary">
+              <Plus className="h-4 w-4" aria-hidden="true" /> New Goal
+            </button>
+          }
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {goals.map((g) => {
-            const pct = Math.min(Math.round(g.current / g.target * 100), 100);
-            const color = pct >= 100 ? '#22C55E' : pct >= 50 ? '#F97316' : '#7C3AED';
+            const pct = Math.max(0, Math.min(Math.round((g.current / g.target) * 100), 100));
+            const color = pct >= 100 ? 'rgb(var(--cova-success-rgb))' : pct >= 50 ? 'rgb(var(--cova-warning-rgb))' : 'rgb(var(--cova-primary-rgb))';
             return (
-              <div key={g.id} className="rounded-card border border-cova-border bg-cova-surface p-5 shadow-card flex flex-col gap-3">
-                <div className="flex items-start justify-between">
-                  <div className="w-10 h-10 rounded-btn bg-cova-primary/15 flex items-center justify-center flex-shrink-0">
-                    <PiggyBank className="w-5 h-5 text-cova-primary" />
+              <div key={g.id} className="flex flex-col gap-3 rounded-card border border-cova-border bg-cova-surface p-5 shadow-card">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-btn bg-cova-primary/15 text-cova-primary">
+                      <PiggyBank className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-cova-text" title={g.name}>{g.name}</p>
+                      <p className="text-xs text-cova-faint">
+                        {formatPeso(g.current)} of {formatPeso(g.target)}
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => onDeleteGoal(g.id)}
-                    className="p-1.5 rounded text-cova-faint hover:bg-cova-danger/10 hover:text-cova-danger transition-colors"
-                    aria-label="Delete goal"
+                    className="icon-btn -mr-1.5 -mt-1 shrink-0 hover:text-cova-danger"
+                    aria-label={`Delete goal ${g.name}`}
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
                 <div>
-                  <p className="font-semibold text-cova-text">{g.name}</p>
-                  <p className="text-xs text-cova-faint mt-0.5">{formatPeso(g.current)} of {formatPeso(g.target)}</p>
-                </div>
-                <div>
-                  <div className="w-full h-2 bg-cova-border rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500" style={{ width: pct + '%', backgroundColor: color }} />
+                  <div
+                    className="h-2 w-full overflow-hidden rounded-full bg-cova-border"
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${g.name} progress`}
+                  >
+                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
                   </div>
-                  <p className="text-xs text-cova-faint mt-1 text-right" style={{ color }}>{pct}%</p>
+                  <p className="mt-1.5 flex items-center justify-between text-xs">
+                    <span className="text-cova-faint">Remaining {formatPeso(Math.max(g.target - g.current, 0))}</span>
+                    <span className="font-semibold" style={{ color }}>{pct}%</span>
+                  </p>
                 </div>
               </div>
             );
@@ -640,6 +1047,7 @@ export function DemoNotesPage({ notes, onCreateNote, onDeleteNote }: {
   const [showNew, setShowNew] = React.useState(false);
   const [draftTitle, setDraftTitle] = React.useState('');
   const [draftBody, setDraftBody] = React.useState('');
+  const [formError, setFormError] = React.useState<string | null>(null);
 
   const filtered = notes.filter(n =>
     !search || n.title.toLowerCase().includes(search.toLowerCase()) || n.body.toLowerCase().includes(search.toLowerCase())
@@ -647,127 +1055,139 @@ export function DemoNotesPage({ notes, onCreateNote, onDeleteNote }: {
 
   const handleSave = () => {
     if (!draftTitle.trim()) {
-      addToast('Title is required', 'error');
+      const message = 'Please enter a note title.';
+      setFormError(message);
+      addToast(message, 'error');
       return;
     }
     const newNote: DemoNote = {
       id: `note-${Date.now()}`,
       title: draftTitle.trim(),
       body: draftBody,
-      updated: new Date().toISOString().split('T')[0],
+      updated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     };
     onCreateNote(newNote);
-    addToast('Note created', 'success');
+    addToast(`Note "${newNote.title}" created`, 'success');
     setShowNew(false);
     setDraftTitle('');
     setDraftBody('');
+    setFormError(null);
   };
 
   const handleCancel = () => {
     setShowNew(false);
     setDraftTitle('');
     setDraftBody('');
+    setFormError(null);
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-cova-text flex items-center gap-2">
-            <StickyNote className="w-5 h-5 text-cova-primary" aria-hidden="true" /> Notes
-            <span className="ml-2 px-2 py-0.5 rounded-full bg-cova-surface border border-cova-border text-xs font-medium text-cova-muted">{filtered.length}</span>
-          </h1>
-          <p className="text-sm text-cova-muted mt-1">Keep your important notes secure</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cova-faint pointer-events-none" />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search notes..."
-              className="input pl-9 pr-3 w-full"
-              aria-label="Search notes"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowNew(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-          >
-            <Plus className="w-4 h-4" /> New
-          </button>
-        </div>
-      </div>
+    <div className="mx-auto max-w-7xl p-4 sm:p-6">
+      <PageHeader
+        icon={StickyNote}
+        title="Notes"
+        subtitle="Keep your important notes secure"
+        count={filtered.length}
+        actions={
+          <>
+            <div className="relative w-full sm:w-64">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cova-faint"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search notes..."
+                className="input h-10 w-full pl-9 pr-3"
+                aria-label="Search notes"
+              />
+            </div>
+            <button type="button" onClick={() => setShowNew(true)} className="btn btn-primary">
+              <Plus className="h-4 w-4" aria-hidden="true" /> New
+            </button>
+          </>
+        }
+      />
 
       {showNew && (
-        <div className="mb-6 rounded-card border border-cova-border bg-cova-surface p-5 shadow-card">
-          <h3 className="text-base font-semibold text-cova-text">New Note</h3>
-          <div className="mt-4 space-y-3">
-            <div>
-              <label className="label">Title <span className="text-cova-danger">*</span></label>
-              <Input value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder="e.g. Weekend trip ideas" autoFocus />
-            </div>
-            <div>
-              <label className="label">Content</label>
-              <textarea value={draftBody} onChange={(e) => setDraftBody(e.target.value)} placeholder="Write your note here..." className="input min-h-[120px] resize-y font-sans" />
-            </div>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2 rounded-btn border border-cova-border bg-cova-surface text-cova-text text-sm font-semibold hover:border-cova-primary/50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-            >
-              Create
-            </button>
-          </div>
-        </div>
+        <FormCard
+          title="New Note"
+          description="Notes stay in memory for this preview only."
+          submitLabel="Create"
+          onClose={handleCancel}
+          onSubmit={handleSave}
+          error={formError}
+        >
+          <Field label="Title" htmlFor="note-title" required>
+            <Input id="note-title" value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder="e.g. Weekend trip ideas" invalid={!draftTitle.trim()} />
+          </Field>
+          <Field label="Content" htmlFor="note-body" hint="optional">
+            <textarea
+              id="note-body"
+              value={draftBody}
+              onChange={(e) => setDraftBody(e.target.value)}
+              placeholder="Write your note here..."
+              className="input min-h-[120px] w-full resize-y font-sans"
+            />
+          </Field>
+        </FormCard>
       )}
 
       {filtered.length === 0 ? (
-        <div className="rounded-card border border-cova-border bg-cova-surface p-8 shadow-card">
-          <div className="text-center">
-            <StickyNote className="w-16 h-16 text-cova-faint mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-cova-text">No notes found</h3>
-            <p className="mt-2 text-sm text-cova-muted">Create a note to get started.</p>
-          </div>
-        </div>
+        <EmptyState
+          icon={StickyNote}
+          title={search ? 'No notes found' : 'No notes yet'}
+          description={search
+            ? `Nothing matches “${search}”. Try a different search term.`
+            : 'Create a note to keep something important close at hand.'}
+          action={
+            search ? (
+              <button type="button" onClick={() => setSearch('')} className="btn btn-secondary">Clear search</button>
+            ) : (
+              <button type="button" onClick={() => setShowNew(true)} className="btn btn-primary">
+                <Plus className="h-4 w-4" aria-hidden="true" /> New note
+              </button>
+            )
+          }
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((n) => (
-            <div key={n.id} className="rounded-card border border-cova-border bg-cova-surface p-5 shadow-card flex flex-col gap-3">
-              <div className="flex items-start justify-between">
-                <div className="w-10 h-10 rounded-btn bg-cova-primary/15 flex items-center justify-center flex-shrink-0">
-                  <StickyNote className="w-5 h-5 text-cova-primary" />
+            <article
+              key={n.id}
+              className="group flex flex-col gap-4 rounded-card border border-cova-border bg-cova-surface p-5 shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-cova-primary/40 hover:shadow-hover"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-btn bg-cova-primary/15 text-cova-primary transition duration-200 group-hover:bg-cova-primary/25">
+                    <StickyNote className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <h3 className="min-w-0 truncate font-semibold text-cova-text" title={n.title}>{n.title}</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => onDeleteNote(n.id)}
-                  className="p-1.5 rounded text-cova-faint hover:bg-cova-danger/10 hover:text-cova-danger transition-colors"
-                  aria-label="Delete note"
+                  className="rounded-btn border border-cova-border bg-cova-elevated p-2 text-cova-muted transition duration-200 hover:border-cova-danger/40 hover:text-cova-danger focus-visible:ring-2 focus-visible:ring-cova-danger/40 focus-visible:outline-none"
+                  aria-label={`Delete note ${n.title}`}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
-              <div>
-                <p className="font-semibold text-cova-text">{n.title}</p>
-                <p className="text-xs text-cova-faint mt-1 line-clamp-4 whitespace-pre-wrap break-words">
-                  {n.body || <span className="italic">Empty note</span>}
+              <p className="line-clamp-4 whitespace-pre-wrap break-words text-sm leading-relaxed text-cova-muted">
+                {n.body || <span className="italic text-cova-faint">Add a note body to capture your thoughts.</span>}
+              </p>
+              <div className="mt-3 flex items-center justify-between border-t border-cova-border pt-3">
+                <span className="inline-flex items-center gap-1.5 rounded-badge bg-cova-elevated px-2.5 py-1 text-xs font-medium text-cova-muted">
+                  <Clock className="h-3 w-3" aria-hidden="true" />
+                  Updated {n.updated}
+                </span>
+                <p className="text-xs text-cova-faint">
+                  {n.body ? 'Stored in browser memory; not synced or backed up.' : 'No body yet — add one below.'}
                 </p>
               </div>
-              <div className="mt-auto pt-2 border-t border-cova-border/50">
-                <span className="text-xs text-cova-faint">Last updated {n.updated}</span>
-              </div>
-            </div>
+            </article>
           ))}
         </div>
       )}
@@ -785,6 +1205,7 @@ export function DemoTasksPage({ tasks, onCreateTask, onToggleTask, onDeleteTask 
   const [showNew, setShowNew] = React.useState(false);
   const [draftTitle, setDraftTitle] = React.useState('');
   const [draftPriority, setDraftPriority] = React.useState<'low' | 'medium' | 'high'>('medium');
+  const [formError, setFormError] = React.useState<string | null>(null);
 
   const filtered = tasks.filter(t => {
     const matchQ = !search || t.title.toLowerCase().includes(search.toLowerCase());
@@ -794,7 +1215,9 @@ export function DemoTasksPage({ tasks, onCreateTask, onToggleTask, onDeleteTask 
 
   const handleSave = () => {
     if (!draftTitle.trim()) {
-      addToast('Title is required', 'error');
+      const message = 'Please enter a task title.';
+      setFormError(message);
+      addToast(message, 'error');
       return;
     }
     const newTask: DemoTask = {
@@ -804,16 +1227,18 @@ export function DemoTasksPage({ tasks, onCreateTask, onToggleTask, onDeleteTask 
       priority: draftPriority,
     };
     onCreateTask(newTask);
-    addToast('Task created', 'success');
+    addToast(`Task "${newTask.title}" created`, 'success');
     setShowNew(false);
     setDraftTitle('');
     setDraftPriority('medium');
+    setFormError(null);
   };
 
   const handleCancel = () => {
     setShowNew(false);
     setDraftTitle('');
     setDraftPriority('medium');
+    setFormError(null);
   };
 
   const statusColors = { todo: 'bg-cova-faint/15 text-cova-muted', in_progress: 'bg-cova-warning/15 text-cova-warning', done: 'bg-cova-success/15 text-cova-success' };
@@ -821,135 +1246,148 @@ export function DemoTasksPage({ tasks, onCreateTask, onToggleTask, onDeleteTask 
   const priorityColors = { low: 'bg-cova-success/15 text-cova-success', medium: 'bg-cova-warning/15 text-cova-warning', high: 'bg-cova-danger/15 text-cova-danger' };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-cova-text flex items-center gap-2">
-            <ListChecks className="w-5 h-5 text-cova-primary" aria-hidden="true" /> Tasks
-            <span className="ml-2 px-2 py-0.5 rounded-full bg-cova-surface border border-cova-border text-xs font-medium text-cova-muted">{filtered.length}</span>
-          </h1>
-          <p className="text-sm text-cova-muted mt-1">Manage your tasks and to-dos</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cova-faint pointer-events-none" />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search tasks..."
-              className="input pl-9 pr-3 w-full"
-              aria-label="Search tasks"
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            className="input w-auto"
-            aria-label="Filter by status"
-          >
-            <option value="all">All</option>
-            <option value="todo">To Do</option>
-            <option value="in_progress">In Progress</option>
-            <option value="done">Done</option>
-          </select>
-          <button
-            type="button"
-            onClick={() => setShowNew(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-          >
-            <Plus className="w-4 h-4" /> New
-          </button>
-        </div>
-      </div>
+    <div className="mx-auto max-w-7xl p-4 sm:p-6">
+      <PageHeader
+        icon={ListChecks}
+        title="Tasks"
+        subtitle="Manage your tasks and to-dos"
+        count={filtered.length}
+        actions={
+          <>
+            <div className="relative w-full sm:w-64">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cova-faint"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search tasks..."
+                className="input h-10 w-full pl-9 pr-3"
+                aria-label="Search tasks"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+              className="input h-10 w-auto"
+              aria-label="Filter by status"
+            >
+              <option value="all">All</option>
+              <option value="todo">To Do</option>
+              <option value="in_progress">In Progress</option>
+              <option value="done">Done</option>
+            </select>
+            <button type="button" onClick={() => setShowNew(true)} className="btn btn-primary">
+              <Plus className="h-4 w-4" aria-hidden="true" /> New
+            </button>
+          </>
+        }
+      />
 
       {showNew && (
-        <div className="mb-6 rounded-card border border-cova-border bg-cova-surface p-5 shadow-card">
-          <h3 className="text-base font-semibold text-cova-text">New Task</h3>
-          <div className="mt-4 space-y-3">
-            <div>
-              <label className="label">Title <span className="text-cova-danger">*</span></label>
-              <Input value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder="What needs to be done?" autoFocus />
+        <FormCard
+          title="New Task"
+          description="Sample tasks are held in memory for this preview only."
+          submitLabel="Create"
+          onClose={handleCancel}
+          onSubmit={handleSave}
+          error={formError}
+        >
+          <Field label="Title" htmlFor="task-title" required>
+            <Input id="task-title" value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder="What needs to be done?" invalid={!draftTitle.trim()} />
+          </Field>
+          <Field label="Priority" htmlFor="task-priority">
+            <div className="flex gap-2" role="radiogroup" aria-label="Priority">
+              {(['low', 'medium', 'high'] as const).map((p) => (
+                <button
+                  key={p}
+                  id={p === 'low' ? 'task-priority' : undefined}
+                  type="button"
+                  role="radio"
+                  aria-checked={draftPriority === p}
+                  onClick={() => setDraftPriority(p)}
+                  className={`flex-1 rounded-btn border py-2.5 text-sm font-medium capitalize transition-colors ${
+                    draftPriority === p
+                      ? 'border-cova-primary bg-cova-primary/15 text-cova-primary'
+                      : 'border-cova-border bg-cova-bg text-cova-muted hover:border-cova-faint/60 hover:text-cova-text'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
             </div>
-            <div>
-              <label className="label">Priority</label>
-              <div className="flex gap-2 mt-1">
-                {(['low', 'medium', 'high'] as const).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setDraftPriority(p)}
-                    className={`flex-1 py-2 rounded-btn border text-sm font-medium capitalize transition-colors ${
-                      draftPriority === p ? 'border-cova-primary bg-cova-primary/15 text-cova-primary' : 'border-cova-border bg-cova-bg text-cova-muted hover:border-cova-border'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2 rounded-btn border border-cova-border bg-cova-surface text-cova-text text-sm font-semibold hover:border-cova-primary/50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-            >
-              Create
-            </button>
-          </div>
-        </div>
+          </Field>
+        </FormCard>
       )}
 
       {filtered.length === 0 ? (
-        <div className="rounded-card border border-cova-border bg-cova-surface p-8 shadow-card">
-          <div className="text-center">
-            <ListChecks className="w-16 h-16 text-cova-faint mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-cova-text">No tasks found</h3>
-            <p className="mt-2 text-sm text-cova-muted">Create a task to get started.</p>
-          </div>
-        </div>
+        <EmptyState
+          icon={ListChecks}
+          title={search || statusFilter !== 'all' ? 'No tasks found' : 'No tasks yet'}
+          description={
+            search || statusFilter !== 'all'
+              ? 'No task matches the current search and status filter.'
+              : 'Create a task to start tracking what needs doing.'
+          }
+          action={
+            search || statusFilter !== 'all' ? (
+              <button
+                type="button"
+                onClick={() => { setSearch(''); setStatusFilter('all'); }}
+                className="btn btn-secondary"
+              >
+                Clear filters
+              </button>
+            ) : (
+              <button type="button" onClick={() => setShowNew(true)} className="btn btn-primary">
+                <Plus className="h-4 w-4" aria-hidden="true" /> New task
+              </button>
+            )
+          }
+        />
       ) : (
-        <div className="space-y-3">
+        <ul className="space-y-3">
           {filtered.map((t) => (
-            <div key={t.id} className="rounded-card border border-cova-border bg-cova-surface p-4 shadow-card flex items-center gap-4">
+            <li
+              key={t.id}
+              className="flex items-center gap-4 rounded-card border border-cova-border bg-cova-surface p-4 shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-cova-primary/40 hover:shadow-hover"
+            >
               <button
                 type="button"
                 onClick={() => onToggleTask(t.id)}
-                className="flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors"
-                style={{
-                  borderColor: t.status === 'done' ? '#22C55E' : 'rgb(var(--cova-border-rgb))',
-                  backgroundColor: t.status === 'done' ? '#22C55E' : 'transparent',
-                }}
-                aria-label={t.status === 'done' ? 'Mark incomplete' : 'Mark complete'}
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                  t.status === 'done'
+                    ? 'border-cova-success bg-cova-success text-cova-success hover:bg-cova-success/85'
+                    : 'border-cova-border text-cova-faint hover:border-cova-success hover:text-cova-success'
+                }`}
+                aria-label={t.status === 'done' ? `Mark “${t.title}” incomplete` : `Mark “${t.title}” complete`}
+                aria-pressed={t.status === 'done'}
               >
-                {t.status === 'done' && <Check className="w-3.5 h-3.5 text-white" />}
+                {t.status === 'done' && <Check className="h-3.5 w-3.5 text-white" aria-hidden="true" />}
               </button>
-              <div className="flex-1 min-w-0">
-                <p className={`font-medium text-cova-text truncate ${t.status === 'done' ? 'line-through text-cova-faint' : ''}`}>{t.title}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[t.status]}`}>{statusLabels[t.status]}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${priorityColors[t.priority]}`}>{t.priority}</span>
+              <div className="min-w-0 flex-1">
+                <h3 className={`break-words font-semibold text-cova-text ${t.status === 'done' ? 'text-cova-faint line-through' : ''}`}>
+                  {t.title}
+                </h3>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center rounded-badge px-2.5 py-1 text-xs font-medium ${statusColors[t.status]}`}>{statusLabels[t.status]}</span>
+                  <span className={`inline-flex items-center rounded-badge px-2.5 py-1 text-xs font-medium capitalize ${priorityColors[t.priority]}`}>{t.priority}</span>
+                  {t.dueDate ? <span className="inline-flex items-center gap-1 text-xs text-cova-faint"><Calendar className="h-3 w-3" aria-hidden="true" /> Due {t.dueDate}</span> : null}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => onDeleteTask(t.id)}
-                className="p-1.5 rounded text-cova-faint hover:bg-cova-danger/10 hover:text-cova-danger transition-colors"
-                aria-label="Delete task"
+                className="rounded-btn border border-cova-border bg-cova-elevated p-2 text-cova-muted transition duration-200 hover:border-cova-danger/40 hover:text-cova-danger focus-visible:ring-2 focus-visible:ring-cova-danger/40 focus-visible:outline-none"
+                aria-label={`Delete task ${t.title}`}
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
               </button>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );
@@ -968,164 +1406,186 @@ export function DemoFoldersPage({ credentials, notes, tasks, folders, onCreateFo
 }) {
   const [showNew, setShowNew] = React.useState(false);
   const [draftName, setDraftName] = React.useState('');
+  const [formError, setFormError] = React.useState<string | null>(null);
   const [activeTab, setActiveTab] = React.useState<'credentials' | 'notes' | 'tasks'>('credentials');
 
   const handleCreate = () => {
     if (!draftName.trim()) {
-      addToast('Folder name is required', 'error');
+      const message = 'Please enter a folder name.';
+      setFormError(message);
+      addToast(message, 'error');
       return;
     }
     onCreateFolder(draftName.trim());
-    addToast('Folder created', 'success');
+    addToast(`Folder "${draftName.trim()}" created`, 'success');
     setShowNew(false);
     setDraftName('');
+    setFormError(null);
+  };
+
+  const handleCancel = () => {
+    setShowNew(false);
+    setDraftName('');
+    setFormError(null);
+  };
+
+  const countIn = (folderId: string, kind: 'credentials' | 'notes' | 'tasks') => {
+    if (kind === 'credentials') return credentials.filter(c => c.folderId === folderId).length;
+    if (kind === 'notes') return notes.filter(n => n.folderId === folderId).length;
+    return tasks.filter(t => t.folderId === folderId).length;
   };
 
   if (openFolder) {
+    const items: { id: string; icon: React.ComponentType<{ className?: string }>; title: string; subtitle: string }[] =
+      activeTab === 'credentials'
+        ? credentials.filter(c => c.folderId === openFolder.id).map(c => ({ id: c.id, icon: Key, title: c.name, subtitle: c.username }))
+        : activeTab === 'notes'
+          ? notes.filter(n => n.folderId === openFolder.id).map(n => ({ id: n.id, icon: StickyNote, title: n.title, subtitle: n.body || 'Empty note' }))
+          : tasks.filter(t => t.folderId === openFolder.id).map(t => ({ id: t.id, icon: ListChecks, title: t.title, subtitle: t.status.replace('_', ' ') }));
+
     return (
-      <div className="p-4 sm:p-6 max-w-4xl mx-auto">
+      <div className="mx-auto max-w-4xl p-4 sm:p-6">
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-2 text-sm text-cova-muted hover:text-cova-text transition-colors mb-4"
+          className="btn btn-ghost btn-sm -ml-3 mb-4 justify-start"
         >
-          <FolderOpen className="w-4 h-4" /> Back to Folders
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" /> Back to Folders
         </button>
-        <div className="flex items-center gap-3 mb-6">
-          <FolderOpen className="w-8 h-8 text-cova-primary" />
-          <div>
-            <h1 className="text-xl font-bold text-cova-text">{openFolder.name}</h1>
+        <div className="mb-6 flex items-center gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-btn border border-cova-border bg-cova-elevated text-cova-primary">
+            <FolderOpen className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-bold text-cova-text">{openFolder.name}</h1>
             <p className="text-sm text-cova-muted">
-              {credentials.filter(c => c.folderId === openFolder.id).length} credentials · {notes.filter(n => n.folderId === openFolder.id).length} notes · {tasks.filter(t => t.folderId === openFolder.id).length} tasks
+              {countIn(openFolder.id, 'credentials')} credentials · {countIn(openFolder.id, 'notes')} notes · {countIn(openFolder.id, 'tasks')} tasks
             </p>
           </div>
         </div>
-        <div className="flex gap-2 mb-4 border-b border-cova-border">
+        <div className="mb-4 flex gap-1 border-b border-cova-border" role="tablist" aria-label="Folder contents">
           {(['credentials', 'notes', 'tasks'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
+              role="tab"
+              aria-selected={activeTab === tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-sm font-medium capitalize transition-colors ${
-                activeTab === tab ? 'text-cova-primary border-b-2 border-cova-primary' : 'text-cova-muted hover:text-cova-text'
+              className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium capitalize transition-colors ${
+                activeTab === tab
+                  ? 'border-cova-primary text-cova-primary'
+                  : 'border-transparent text-cova-muted hover:text-cova-text'
               }`}
             >
               {tab}
+              <span className="ml-1.5 rounded-badge bg-cova-elevated px-1.5 py-0.5 text-[11px] text-cova-faint">
+                {countIn(openFolder.id, tab)}
+              </span>
             </button>
           ))}
         </div>
-        <div className="space-y-2">
-          {activeTab === 'credentials' && credentials.filter(c => c.folderId === openFolder.id).map(c => (
-            <div key={c.id} className="px-5 py-3 flex items-center gap-3 rounded-card border border-cova-border bg-cova-surface">
-              <div className="w-8 h-8 rounded-btn bg-cova-primary/10 flex items-center justify-center flex-shrink-0">
-                <Key className="w-4 h-4 text-cova-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-cova-text truncate">{c.name}</p>
-                <p className="text-xs text-cova-faint truncate">{c.username}</p>
-              </div>
-            </div>
-          ))}
-          {activeTab === 'notes' && notes.filter(n => n.folderId === openFolder.id).map(n => (
-            <div key={n.id} className="px-5 py-3 flex items-center gap-3 rounded-card border border-cova-border bg-cova-surface">
-              <div className="w-8 h-8 rounded-btn bg-cova-primary/10 flex items-center justify-center flex-shrink-0">
-                <StickyNote className="w-4 h-4 text-cova-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-cova-text truncate">{n.title}</p>
-                <p className="text-xs text-cova-faint truncate">{n.body || 'Empty note'}</p>
-              </div>
-            </div>
-          ))}
-          {activeTab === 'tasks' && tasks.filter(t => t.folderId === openFolder.id).map(t => (
-            <div key={t.id} className="px-5 py-3 flex items-center gap-3 rounded-card border border-cova-border bg-cova-surface">
-              <div className="w-8 h-8 rounded-btn bg-cova-primary/10 flex items-center justify-center flex-shrink-0">
-                <ListChecks className="w-4 h-4 text-cova-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-cova-text truncate">{t.title}</p>
-                <p className="text-xs text-cova-faint">{t.status}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {items.length === 0 ? (
+          <div className="rounded-card border border-cova-border bg-cova-surface px-6 py-10 text-center">
+            <p className="text-sm font-medium text-cova-text">No {activeTab} in this folder</p>
+            <p className="mt-1 text-sm text-cova-muted">Items you assign to this folder will show up here.</p>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {items.map(item => (
+              <li key={item.id} className="flex items-center gap-3 rounded-card border border-cova-border bg-cova-surface px-5 py-3">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-btn bg-cova-primary/10 text-cova-primary">
+                  <item.icon className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-cova-text" title={item.title}>{item.title}</p>
+                  <p className="truncate text-xs capitalize text-cova-faint" title={item.subtitle}>{item.subtitle}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-cova-text flex items-center gap-2">
-            <Folder className="w-5 h-5 text-cova-primary" aria-hidden="true" /> Folders
-          </h1>
-          <p className="text-sm text-cova-muted mt-1">Organize your credentials, notes, and tasks</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowNew(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-        >
-          <Plus className="w-4 h-4" /> New Folder
-        </button>
-      </div>
+    <div className="mx-auto max-w-4xl p-4 sm:p-6">
+      <PageHeader
+        icon={Folder}
+        title="Folders"
+        subtitle="Organize your credentials, notes, and tasks"
+        count={folders.length}
+        actions={
+          <button type="button" onClick={() => setShowNew(true)} className="btn btn-primary">
+            <Plus className="h-4 w-4" aria-hidden="true" /> New Folder
+          </button>
+        }
+      />
 
       {showNew && (
-        <div className="mb-6 rounded-card border border-cova-border bg-cova-surface p-5 shadow-card">
-          <h3 className="text-base font-semibold text-cova-text">New Folder</h3>
-          <div className="mt-4">
-            <label className="label">Folder Name <span className="text-cova-danger">*</span></label>
-            <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="e.g. Work accounts" autoFocus />
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowNew(false)}
-              className="px-4 py-2 rounded-btn border border-cova-border bg-cova-surface text-cova-text text-sm font-semibold hover:border-cova-primary/50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleCreate}
-              className="px-4 py-2 rounded-btn bg-cova-primary text-white text-sm font-semibold hover:bg-cova-primaryHover transition"
-            >
-              Create
-            </button>
-          </div>
-        </div>
+        <FormCard
+          title="New Folder"
+          description="Folders group sample items together in this preview."
+          submitLabel="Create"
+          onClose={handleCancel}
+          onSubmit={handleCreate}
+          error={formError}
+        >
+          <Field label="Folder Name" htmlFor="folder-name" required>
+            <Input id="folder-name" value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="e.g. Work accounts" invalid={!draftName.trim()} />
+          </Field>
+        </FormCard>
       )}
 
       {folders.length === 0 ? (
-        <div className="rounded-card border border-cova-border bg-cova-surface p-8 shadow-card">
-          <div className="text-center">
-            <Folder className="w-16 h-16 text-cova-faint mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-cova-text">No folders yet</h3>
-            <p className="mt-2 text-sm text-cova-muted">Create folders to organize your items.</p>
-          </div>
-        </div>
+        <EmptyState
+          icon={Folder}
+          title="No folders yet"
+          description="Create folders to organize your items."
+          action={
+            <button type="button" onClick={() => setShowNew(true)} className="btn btn-primary">
+              <Plus className="h-4 w-4" aria-hidden="true" /> New Folder
+            </button>
+          }
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {folders.map((f) => (
-            <div key={f.id} className="rounded-card border border-cova-border bg-cova-surface p-5 shadow-card flex items-center gap-3 hover:bg-cova-elevated transition-colors group cursor-pointer" onClick={() => onOpenFolder(f)}>
-              <FolderOpen className="w-8 h-8 text-cova-primary flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-cova-text truncate">{f.name}</p>
-                <p className="text-xs text-cova-faint">
-                  {credentials.filter(c => c.folderId === f.id).length + notes.filter(n => n.folderId === f.id).length + tasks.filter(t => t.folderId === f.id).length} items
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onDeleteFolder(f.id); }}
-                className="p-1.5 rounded text-cova-faint hover:bg-cova-danger/10 hover:text-cova-danger transition-colors opacity-0 group-hover:opacity-100"
-                aria-label="Delete folder"
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {folders.map((f) => {
+            const total = countIn(f.id, 'credentials') + countIn(f.id, 'notes') + countIn(f.id, 'tasks');
+            return (
+              <div
+                key={f.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpenFolder(f)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onOpenFolder(f);
+                  }
+                }}
+                className="group flex cursor-pointer items-center gap-3 rounded-card border border-cova-border bg-cova-surface p-5 shadow-card transition-colors hover:border-cova-primary/50 hover:bg-cova-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cova-accent"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-btn bg-cova-primary/15 text-cova-primary">
+                  <FolderOpen className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-cova-text" title={f.name}>{f.name}</p>
+                  <p className="text-xs text-cova-faint">
+                    {total} item{total === 1 ? '' : 's'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={(event) => { event.stopPropagation(); onDeleteFolder(f.id); }}
+                  className="icon-btn shrink-0 opacity-0 transition-opacity hover:text-cova-danger focus-visible:opacity-100 group-hover:opacity-100"
+                  aria-label={`Delete folder ${f.name}`}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1142,80 +1602,82 @@ export function DemoFavoritesPage({ credentials, onToggleFavorite }: {
   const shown = favs.filter(c => !q || c.name.toLowerCase().includes(q) || c.username.toLowerCase().includes(q));
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-cova-text flex items-center gap-2">
-            <Star className="w-5 h-5 text-cova-warning fill-cova-warning" aria-hidden="true" /> Favorites
-            <span className="ml-2 px-2 py-0.5 rounded-full bg-cova-surface border border-cova-border text-xs font-medium text-cova-muted">{favs.length}</span>
-          </h1>
-          <p className="text-sm text-cova-muted mt-1">Your starred credentials</p>
-        </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cova-faint pointer-events-none" />
-          <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search favorites..." className="input pl-9 pr-3 w-full" aria-label="Search favorites" />
-        </div>
-      </div>
+    <div className="mx-auto max-w-7xl p-4 sm:p-6">
+      <PageHeader
+        icon={Star}
+        title="Favorites"
+        subtitle="Your starred credentials"
+        count={favs.length}
+        actions={
+          <div className="relative w-full sm:w-72">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cova-faint"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search favorites..."
+              className="input h-10 w-full pl-9 pr-3"
+              aria-label="Search favorites"
+            />
+          </div>
+        }
+      />
 
       {shown.length === 0 ? (
-        <div className="rounded-card border border-cova-border bg-cova-surface p-8 shadow-card">
-          <div className="text-center">
-            <Star className="w-16 h-16 text-cova-faint mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-cova-text">No favorites yet</h3>
-            <p className="mt-2 text-sm text-cova-muted">Star any credential to add it to your favorites.</p>
-          </div>
-        </div>
+        <EmptyState
+          icon={Star}
+          title={favs.length === 0 ? 'No favorites yet' : 'No favorites found'}
+          description={favs.length === 0
+            ? 'Star any credential on the Credentials screen and it will appear here.'
+            : `Nothing matches “${search}”. Try a different search term.`}
+          action={
+            favs.length === 0 ? null : (
+              <button type="button" onClick={() => setSearch('')} className="btn btn-secondary">Clear search</button>
+            )
+          }
+        />
       ) : (
-        <div className="rounded-card border border-cova-border bg-cova-surface shadow-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th className="w-2/5">Name</th>
-                  <th className="w-1/5">Username</th>
-                  <th className="w-1/5">Password</th>
-                  <th className="w-1/6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((c) => (
-                  <tr key={c.id} className="border-b border-cova-border/50 hover:bg-cova-elevated/40 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-btn bg-cova-primary/15 flex items-center justify-center flex-shrink-0">
-                          <Key className="w-4 h-4 text-cova-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-cova-text truncate flex items-center gap-1">
-                            <Star className="w-3 h-3 text-cova-warning fill-cova-warning flex-shrink-0" />{c.name}
-                          </div>
-                          <div className="text-xs text-cova-faint truncate">{c.website || '—'}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-sm text-cova-muted truncate block max-w-[200px]">{c.username}</span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="font-mono text-sm text-cova-text">••••••••</span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={() => onToggleFavorite(c.id)}
-                          className="p-1.5 rounded text-cova-warning hover:bg-cova-elevated transition-colors"
-                          aria-label="Unfavorite"
-                        >
-                          <Star className="w-4 h-4 fill-cova-warning text-cova-warning" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="space-y-3">
+          {shown.map((c) => (
+            <article
+              key={c.id}
+              className="flex flex-col gap-4 rounded-card border border-cova-border bg-cova-surface p-5 shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-cova-primary/40 hover:shadow-hover sm:flex-row sm:items-center sm:gap-5"
+            >
+              <div className="flex min-w-0 items-center gap-3 sm:w-1/3">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-btn bg-cova-primary/15 text-cova-primary transition duration-200 group-hover:bg-cova-primary/25">
+                  <Key className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="truncate font-semibold text-cova-text" title={c.name}>{c.name}</h3>
+                  <p className="text-xs text-cova-faint">{getDomainFromUrl(c.website) || '—'}</p>
+                </div>
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 border-t border-cova-border pt-3 sm:w-1/3">
+                <p className="truncate text-sm font-medium text-cova-text" title={c.username}>{c.username}</p>
+                <p className="font-mono text-sm text-cova-muted">{maskPassword(c.password)}</p>
+              </div>
+              <div className="flex flex-1 items-center justify-end gap-2 sm:flex-col sm:items-start sm:justify-center">
+                <button
+                  type="button"
+                  onClick={() => onToggleFavorite(c.id)}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-btn border px-4 py-2 text-sm font-medium transition duration-200 ${
+                    c.favorite
+                      ? 'border-cova-warning/30 bg-cova-warning/10 text-cova-warning'
+                      : 'border-cova-border bg-cova-elevated text-cova-muted hover:border-cova-warning/40 hover:text-cova-warning'
+                  }`}
+                  aria-label={c.favorite ? `Remove ${c.name} from favorites` : `Add ${c.name} to favorites`}
+                  aria-pressed={c.favorite}
+                >
+                  <Star className={`h-4 w-4 ${c.favorite ? 'fill-cova-warning text-cova-warning' : ''}`} aria-hidden="true" />
+                  {c.favorite ? 'Favorite' : 'Add to favorites'}
+                </button>
+                <span className="text-xs text-cova-faint">Starred items stay visible across the account.</span>
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </div>
@@ -1256,50 +1718,80 @@ export function DemoCalendarPage({ tasks }: { tasks: DemoTask[] }) {
   const priorityBars = { low: 'bg-cova-success', medium: 'bg-cova-warning', high: 'bg-cova-danger' };
 
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-cova-text flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-cova-primary" aria-hidden="true" /> Calendar
-          </h1>
-          <p className="text-sm text-cova-muted mt-1">Tasks by due date — {MONTHS[month]} {year}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={prev} className="p-2 rounded-btn text-cova-muted hover:bg-cova-elevated hover:text-cova-text transition-colors" aria-label="Previous month">
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-sm font-medium text-cova-text w-40 text-center">{MONTHS[month]} {year}</span>
-          <button type="button" onClick={next} className="p-2 rounded-btn text-cova-muted hover:bg-cova-elevated hover:text-cova-text transition-colors" aria-label="Next month">
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+    <div className="mx-auto max-w-6xl p-4 sm:p-6">
+      <PageHeader
+        icon={Calendar}
+        title="Calendar"
+        subtitle="Tasks by due date"
+        actions={
+          <div className="flex items-center gap-1.5">
+            <button type="button" onClick={prev} className="icon-btn border border-cova-border" aria-label="Previous month">
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <span className="min-w-[9.5rem] text-center text-sm font-medium text-cova-text" aria-live="polite">
+              {MONTHS[month]} {year}
+            </span>
+            <button type="button" onClick={next} className="icon-btn border border-cova-border" aria-label="Next month">
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        }
+      />
 
-      <div className="rounded-card border border-cova-border bg-cova-surface shadow-card overflow-hidden">
+      <div className="overflow-hidden rounded-card border border-cova-border bg-cova-surface shadow-card">
         <div className="grid grid-cols-7">
-          {DAYS.map(d => <div key={d} className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-semibold text-cova-faint uppercase border-b border-cova-border">{d}</div>)}
+          {DAYS.map(d => (
+            <div key={d} className="border-b border-cova-border bg-cova-elevated px-1 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-cova-faint sm:text-xs sm:py-2.5">
+              {d}
+            </div>
+          ))}
           {calDays.map((day, i) => {
-            if (!day) return <div key={'e' + i} className="min-h-[64px] sm:min-h-[96px] border-b border-r border-cova-border/50" />;
+            if (!day) return <div key={'e' + i} className="min-h-[72px] border-b border-r border-cova-border/50 bg-cova-bg/40 sm:min-h-[112px]" />;
             const key = day.toISOString().split('T')[0];
             const dayTasks = tasksByDate[key] || [];
             return (
-              <div key={key} className={`min-h-[64px] sm:min-h-[96px] border-b border-r border-cova-border/50 p-1 sm:p-1.5 ${isToday(day) ? 'bg-cova-primary/5' : ''}`}>
-                <span className={`inline-flex w-5 h-5 sm:w-6 sm:h-6 items-center justify-center rounded-full text-[10px] sm:text-xs font-medium mb-0.5 sm:mb-1 ${isToday(day) ? 'bg-cova-primary text-white' : 'text-cova-muted'}`}>
+              <div
+                key={key}
+                className={`min-h-[72px] border-b border-r border-cova-border/50 p-1.5 transition-colors sm:min-h-[112px] sm:p-2 ${
+                  isToday(day) ? 'bg-cova-primary/10' : 'hover:bg-cova-elevated/40'
+                }`}
+              >
+                <span
+                  className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium sm:h-7 sm:w-7 ${
+                    isToday(day) ? 'bg-cova-primary text-white' : 'text-cova-muted'
+                  }`}
+                >
                   {day.getDate()}
                 </span>
-                <div className="space-y-0.5 hidden sm:block">
+                <div className="mt-1 hidden space-y-1 sm:block">
                   {dayTasks.slice(0, 3).map(t => (
-                    <div key={t.id} className={`text-[10px] px-1 py-0.5 rounded truncate font-medium text-white ${priorityBars[t.priority]}`} title={t.title}>{t.title}</div>
+                    <div
+                      key={t.id}
+                      className={`truncate rounded px-1.5 py-0.5 text-[11px] font-medium leading-tight text-white ${priorityBars[t.priority]}`}
+                      title={t.title}
+                    >
+                      {t.title}
+                    </div>
                   ))}
-                  {dayTasks.length > 3 && <div className="text-[10px] text-cova-faint px-1">+{dayTasks.length - 3} more</div>}
+                  {dayTasks.length > 3 && <div className="px-1.5 text-[11px] text-cova-faint">+{dayTasks.length - 3} more</div>}
                 </div>
-                <div className="sm:hidden">
-                  {dayTasks.length > 0 && <div className="w-1.5 h-1.5 rounded-full bg-cova-primary mx-auto" />}
-                </div>
+                {dayTasks.length > 0 && (
+                  <div className="mt-1 flex justify-center gap-1 sm:hidden" aria-label={`${dayTasks.length} task(s)`}>
+                    {dayTasks.slice(0, 3).map(t => (
+                      <span key={t.id} className={`h-1.5 w-1.5 rounded-full ${priorityBars[t.priority]}`} />
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-cova-muted">
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-cova-success" aria-hidden="true" /> Low priority</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-cova-warning" aria-hidden="true" /> Medium priority</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-cova-danger" aria-hidden="true" /> High priority</span>
       </div>
     </div>
   );
